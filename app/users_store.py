@@ -1,4 +1,7 @@
-"""Operator / Drive settings (config/app_config.json or GCS).
+"""Operator / Drive settings (GCS canonical, or local config/app_config.json).
+
+Production: set APP_CONFIG_GCS_URI / USERS_CONFIG_GCS_URI — load/save use GCS only.
+Local: optional config/app_config.json (gitignored; see app_config.example.json).
 
 User roster is NOT stored here — canonical list is AI_Cripping GCS
 ``setting/user-list.csv`` (see ``app.clipping_roster``).
