@@ -1,0 +1,12 @@
+secrets/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.chrome-admin-profile/
+*.egg-info/
+.pytest_cache/
+oauth_client_secret*.json
+*_token.json
+debug-*.log
+.env

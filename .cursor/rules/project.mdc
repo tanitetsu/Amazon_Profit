@@ -1,0 +1,28 @@
+---
+description: amazon-profit-mail プロジェクト方針（設計正本・シート/メール）
+alwaysApply: true
+---
+
+# amazon-profit-mail（OAuth/サービス名: amazon-profit-viewer）
+
+- 設計正本: `docs/architecture.md`。シート＆メール取込: `docs/sheet-and-mail-spec.md`。AI_Cripping 統合: `docs/integration-ai-clipping.md`。本番前: `docs/pre-production-checklist.md`
+- ブック正本は Drive テンプレ `amazon-profit_TEMPLATE.xlsx`（`template_ops` / `scripts/build_workbook_template.py`）。月次テンプレ詳細は 2000 行分横結合済み。空行に☑なし。☑は注文 APPEND／Excel データ行のみ
+- **Agent／自動化はライブ Drive テンプレと bound Apps Script を変更しない**（再ビルド・API 再配備・表示切替も依頼なしではしない）。運営の手動編集（表示状態・スクリプト Save 含む）はあり得る。新規ユーザーは当時のテンプレ内容を copy 継承
+- 新規ユーザーはテンプレ copy → 直後に `月次テンプレート` を非表示（`hide_month_template_sheet`）。月次は `月次テンプレート` duplicate（結合・CF・書式は継承。Excel 取込は値・☑・リンクのみで再スタイルしない）。明細 APPEND。欠月は間も作成。月別・タブは降順
+- ダッシュボードメタは **最終自動更新**。列定数は `app/schema.py`。キャンセル☑連動 Apps Script は月名正規表現のみ（シート増減で変更不要）。プロビジョンは API 再付与しない（copy 継承）
+- OAuth 同意画面のアプリ名は `amazon-profit-viewer`。同意画面は本番公開済み・**審査中**（テストユーザー運用は終了方針）
+- secrets の中身は読まない・コミットしない（パスと env 名のみ）
+- 保存先は運営 Drive（`26964u@gmail.com` / `User_Acounting`）。追記先はユーザー変更不可
+- ファイル名は `amazon-profit_{user_id}_{yyyy}.xlsx`（年次新規）。振り分けキーは**注文日**
+- 管理者 UI: ローカル `127.0.0.1:5055`／Cloud Run は **IAP + SA**（未認証禁止）
+- ユーザー追加時は AI_Cripping Cloud Run（既定 `ai-cripping-data-viewer`）へ IAP を自動付与、削除時は解除（`app/iap_access.py`。SA に `roles/iap.admin`）
+- ユーザーロールは AI_Cripping と同じ `Admin` / `Exclusive` / `Normal`（既定 Normal）。**シート共有は全員 Editor**
+- 範囲保護: Admin=なし／他ロール=現行（editors は運営＋ランタイム SA のみ）。プロビジョンは保護→共有
+- 名簿正本は AI_Cripping GCS `setting/user-list.csv`（gmail=`{user_id}@gmail.com`）。退会リストは `setting/quitted_user.txt`（削除で追記・再登録で除外）。設定退避は `setting/quitted-user/{user_id}/`。運営設定のみ `config/app_config.json`（ユーザー配列なし）。名簿編集時は空行除去
+- 再追加で同年次シートがあれば**再利用**（注文データは消さない）。空にするのは `rebuild=True` のみ。`26964u` 退避禁止
+- 既存ユーザー再プロビジョンでシートを空にしない（`rebuild=True` のみ例外）
+- 状態は `○/×/-/返品` の**値**（あなたによるキャンセルは ASCII `-`）。キャンセル☑→`-`/`○` はテンプレ継承の Apps Script simple `onEdit`（新規は copy のみ。Agent はテンプレ／ユーザー本へ API 再配備しない）
+- Pt 欠落時は税込価格の 1%。メルカリは SKU `m_m数字` → ID `m数字` のみ。仕入金は `items/get` + DPoP（失敗時空）
+- 返金手続き開始メールは対象外。既存本番は移行せず新レイアウト新規ファイルから
+- Gmail: 案 B 同意メール → 5 分ポーリング（トークン維持込み）。削除時はトークン解除
+- 本番展開: OAuth 本番公開済み・審査中、`ADMIN_USE_ADC=1`、SA に User_Acounting Editor、`PUBLIC_BASE_URL`、Scheduler

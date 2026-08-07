@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理者コンソール · AI_Cripping × amazon-profit</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v={{ static_ver }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <div class="brand">
+      <p class="brand-name">AI_Cripping × amazon-profit</p>
+      <h1>管理者コンソール</h1>
+    </div>
+    <div class="top-aside">
+      <nav class="top-nav" aria-label="管理メニュー">
+        <a class="nav-link" href="/mail-poll-runs">ポーリング実行記録</a>
+      </nav>
+      <p class="meta">スプレッドシート Drive <strong>{{ operator }}</strong> · フォルダ <strong>{{ folder }}</strong></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="users-heading">
+      <div class="panel-head">
+        <h2 id="users-heading">ユーザー・スプレッドシート</h2>
+        <div class="panel-actions">
+          <button type="button" class="ghost" id="refreshBtn">更新</button>
+        </div>
+      </div>
+
+      <div class="list-block">
+        <h3 class="list-label">ユーザー一覧</h3>
+        <div id="rosterList" class="roster-list" role="list">
+          <p class="muted">読み込み中…</p>
+        </div>
+      </div>
+
+      <div class="list-block">
+        <h3 class="list-label">スプレッドシート一覧</h3>
+        <div class="filters" role="group" aria-label="ファイル絞り込み">
+          <label class="filter-field" for="filterUser">
+            <span>ユーザー</span>
+            <select id="filterUser">
+              <option value="">すべて</option>
+            </select>
+          </label>
+          <label class="filter-field" for="filterYear">
+            <span>年</span>
+            <select id="filterYear">
+              <option value="">すべて</option>
+            </select>
+          </label>
+          <button type="button" class="ghost filter-template-btn" id="openTemplateBtn"
+                  data-template-url="{{ template_url }}">
+            スプレッドシートテンプレ
+          </button>
+        </div>
+        <div id="userList" class="user-list" role="list">
+          <p class="muted">読み込み中…</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="add-heading">
+      <h2 id="add-heading">新規ユーザー追加</h2>
+      <form id="addForm" class="add-form">
+        <div class="add-field">
+          <label for="gmailInput">Gmail</label>
+          <div class="add-row">
+            <input id="gmailInput" type="email" name="gmail" required placeholder="user@gmail.com" autocomplete="email" />
+            <label class="role-field" for="roleSelect">
+              ロール
+              <select id="roleSelect" name="role" aria-label="ロール">
+                <option value="Normal" selected>Normal</option>
+                <option value="Exclusive">Exclusive</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </label>
+            <button type="submit" id="addBtn">追加</button>
+          </div>
+        </div>
+      </form>
+      <p class="hint">名簿（AI_Cripping <code>user-list.csv</code>）・GCS 設定・スプレッドシート共有・Gmail 連携案内・IAP まで一括で行います（1〜数分かかることがあります）。同年次のスプレッドシートが既にあれば<strong>再利用</strong>します。退会リスト（<code>quitted_user.txt</code>）に同一 ID があれば除外して再登録し、GCS 設定フォルダがあれば復元します。アドレスは <code>@gmail.com</code> のみです。</p>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel panel-danger" aria-labelledby="delete-heading">
+      <h2 id="delete-heading">ユーザー削除</h2>
+      <p class="hint">名簿（<code>user-list.csv</code>）除外・<code>quitted_user.txt</code> 追加・スプレッドシート共有解除・Gmail 連携解除・設定の退会アーカイブ（<code>setting/quitted-user/</code>）を行います。シート本体と scraping / log は残します。</p>
+      <div class="delete-bar">
+        <label class="delete-select-label">
+          対象ユーザー ID
+          <select id="deleteSelect">
+            <option value="">選択してください</option>
+          </select>
+        </label>
+        <button type="button" class="btn-delete" id="deleteBtn" disabled>削除</button>
+      </div>
+      <p id="deleteStatus" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='admin.js') }}?v={{ static_ver }}"></script>
+</body>
+</html>

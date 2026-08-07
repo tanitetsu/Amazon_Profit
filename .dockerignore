@@ -1,0 +1,13 @@
+.venv/
+.git/
+.chrome-admin-profile/
+secrets/
+**/__pycache__/
+*.pyc
+.env
+debug-*.log
+_recover*.py
+*.md
+docs/
+.cursor/
+scripts/

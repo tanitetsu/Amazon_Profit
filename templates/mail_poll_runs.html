@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ポーリング実行記録 · AI_Cripping × amazon-profit</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v={{ static_ver }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <div class="brand">
+      <p class="brand-name">AI_Cripping × amazon-profit</p>
+      <h1>ポーリング実行記録</h1>
+    </div>
+    <div class="top-aside">
+      <nav class="top-nav" aria-label="管理メニュー">
+        <a class="nav-link" href="/">← 管理者コンソール</a>
+      </nav>
+      <p class="meta">スプレッドシート Drive <strong>{{ operator }}</strong> · フォルダ <strong>{{ folder }}</strong></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="runs-heading">
+      <div class="panel-head">
+        <h2 id="runs-heading">メール取込ジョブ</h2>
+        <div class="panel-actions">
+          <button type="button" class="ghost" id="searchBtn">検索</button>
+        </div>
+      </div>
+      <p class="hint">5 分ポーリング（Cloud Scheduler / ローカル）の実行結果を日付・ユーザー・結果で絞り込みます。日付は Asia/Tokyo。空欄は指定なし（保持期間内・約 30 日）。保持は約 30 日です。</p>
+
+      <div class="filters" role="group" aria-label="実行記録の絞り込み">
+        <label class="filter-field" for="filterDate">
+          <span>日付</span>
+          <input id="filterDate" type="date" />
+        </label>
+        <button type="button" class="ghost filter-clear-date" id="clearDateBtn" title="日付指定を外す">指定なし</button>
+        <label class="filter-field" for="filterUser">
+          <span>ユーザー</span>
+          <select id="filterUser">
+            <option value="">すべて</option>
+          </select>
+        </label>
+        <label class="filter-field" for="filterErrors">
+          <span>結果</span>
+          <select id="filterErrors">
+            <option value="">すべて</option>
+            <option value="1">エラーあり</option>
+          </select>
+        </label>
+      </div>
+
+      <p id="runsStatus" class="status" aria-live="polite"></p>
+      <div id="runsList" class="runs-list" role="list">
+        <p class="muted">読み込み中…</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='mail_poll_runs.js') }}?v={{ static_ver }}"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gmail 連携 · amazon-profit-viewer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg"></div>
+  <main style="max-width: 40rem; margin: 4rem auto; padding: 0 1.25rem;">
+    <section class="panel">
+      {% if ingest_error and not gmail %}
+      <h2>Gmail 連携に失敗しました</h2>
+      <p class="status err">{{ ingest_error }}</p>
+      {% elif ingest_error %}
+      <h2>Gmail 連携は完了 · 取込でエラー</h2>
+      <p class="gmail">{{ gmail }}</p>
+      <p class="status err">{{ ingest_error }}</p>
+      {% else %}
+      <h2>Gmail 連携完了</h2>
+      <p class="gmail">{{ gmail }}</p>
+      <p>Amazon 出品関連メールは約 5 分ごとにシートへ反映されます。</p>
+      {% if ingest %}
+      <p class="status ok">
+        初回取込: 処理 {{ ingest.processed }} 件
+        （パース対象外 {{ ingest.parse_miss }}）
+      </p>
+      {% endif %}
+      {% endif %}
+      <p class="hint" style="margin-top: 1.5rem;">このウィンドウは閉じて問題ありません。</p>
+    </section>
+  </main>
+</body>
+</html>
