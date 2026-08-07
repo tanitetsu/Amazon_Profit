@@ -7,7 +7,7 @@
 - ファイル名: `amazon-profit_{user_id}_{yyyy}.xlsx`（年が変わったら新規作成）
 - 保存先: 運営 Drive `User_Acounting/`（変更なし）
 - `user_id`: Gmail ローカル部（例: `asamiodaka`）
-- **テンプレ**: `amazon-profit_TEMPLATE.xlsx`（ID は `config/app_config.json` の `template_spreadsheet_id`）
+- **テンプレ**: `amazon-profit_TEMPLATE.xlsx`（ID は GCS 正本 `app_config.json` の `template_spreadsheet_id`。ローカルは `config/app_config.example.json` 参照）
   - **Agent／自動化はライブテンプレと bound Apps Script を変更しない**（依頼なしの再ビルド・API 再配備・表示切替なし）。運営の手動編集（表示状態・スクリプト Save 含む）はあり得る。新規は当時のテンプレ内容を copy 継承
   - シート: `ダッシュボード` ＋ `月次テンプレート`（ユーザー本は copy 直後に `hide_month_template_sheet` で非表示。テンプレ本体の表示は運営編集可／再ビルド時は表示推奨）
   - 新規ユーザー = Drive `files.copy` → 直後に `月次テンプレート` を非表示。見た目・結合・数式・保護・キャンセル☑連動 Apps Script はテンプレ継承

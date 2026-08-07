@@ -1,0 +1,8 @@
+{
+  "operator_drive_email": "YOUR_OPERATOR@gmail.com",
+  "protection_editor_emails": [
+    "amazon-profit-admin@PROJECT.iam.gserviceaccount.com"
+  ],
+  "folder_name": "User_Acounting",
+  "template_spreadsheet_id": "YOUR_TEMPLATE_SPREADSHEET_ID"
+}

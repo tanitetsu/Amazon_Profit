@@ -10,3 +10,6 @@ oauth_client_secret*.json
 *_token.json
 debug-*.log
 .env
+# Runtime / env-specific (canonical copy lives on GCS in production)
+config/app_config.json
+config/users.json

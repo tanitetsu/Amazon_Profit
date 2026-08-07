@@ -128,13 +128,29 @@ if (-not (Invoke-GcloudQuiet storage buckets describe "gs://$BucketName" --proje
     --uniform-bucket-level-access
 }
 
-if (-not (Test-Path -LiteralPath "config\app_config.json")) {
-  throw "config/app_config.json missing; cannot seed GCS"
+# app_config: production canonical is GCS (APP_CONFIG_GCS_URI).
+# Local file is optional seed for first deploy / offline admin only.
+$UsersLocal = "config\app_config.json"
+$gcsHasConfig = $false
+try {
+  gcloud storage ls $UsersGcsUri --project $ProjectId 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { $gcsHasConfig = $true }
+} catch {
+  $gcsHasConfig = $false
 }
 
-$UsersLocalPath = (Resolve-Path "config\app_config.json").Path
-Write-Host "Syncing config/app_config.json -> $UsersGcsUri"
-gcloud storage cp $UsersLocalPath $UsersGcsUri --project $ProjectId
+if (Test-Path -LiteralPath $UsersLocal) {
+  $UsersLocalPath = (Resolve-Path $UsersLocal).Path
+  Write-Host "Syncing config/app_config.json -> $UsersGcsUri"
+  gcloud storage cp $UsersLocalPath $UsersGcsUri --project $ProjectId
+} elseif ($gcsHasConfig) {
+  Write-Host "No local config/app_config.json; keeping existing $UsersGcsUri"
+} else {
+  throw @"
+config/app_config.json missing and GCS object not found: $UsersGcsUri
+Copy config/app_config.example.json to config/app_config.json, fill values, or upload once to GCS.
+"@
+}
 
 # Operator user OAuth (gmail.send)  Erequired for consent mail on Cloud Run (SA cannot send)
 $OperatorTokenUri = "gs://$BucketName/secrets/operator_token.json"

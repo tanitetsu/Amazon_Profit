@@ -121,7 +121,7 @@
 | リージョン | `asia-northeast1` |
 | URL | https://amazon-profit-viewer-mjqzkyqita-an.a.run.app |
 | ランタイム SA | `amazon-profit-admin@positive-design-480606-c7.iam.gserviceaccount.com` |
-| app_config.json | `gs://positive-design-480606-c7-amazon-profit-admin/config/app_config.json`（デプロイ時にローカルから同期。ユーザー名簿は含まない） |
+| app_config.json | `gs://positive-design-480606-c7-amazon-profit-admin/config/app_config.json`（**正本は GCS**。リポには `config/app_config.example.json` のみ。ローカル `config/app_config.json` は gitignore。デプロイはローカルがあれば同期、無ければ既存 GCS を維持） |
 | IAP 許可 | 運営 `26964u@gmail.com`（デプロイ時）。一般ユーザーは Admin 追加時に `ai-cripping-data-viewer` へ自動付与（`app/iap_access.py`） |
 
 3. **必須（手動）**: `26964u@gmail.com` の Drive でフォルダ `User_Acounting` をランタイム SA に **編集者**共有
@@ -148,7 +148,7 @@ IAP 手順をスキップする場合: `-SkipIap`。ビルド省略: `-SkipBuild
 
 - **未認証** Cloud Run（`--allow-unauthenticated`）に管理者コンソールを載せない
 - IAP 付き Cloud Run が本番管理画面。ローカルは開発・緊急用
-- クラウド運用開始後、`app_config.json` の正本は GCS（ローカルと二重書きしない）。ユーザー名簿は `setting/user-list.csv`
+- クラウド運用開始後、`app_config.json` の正本は GCS（ローカルと二重管理しない。リポには example のみ）。ユーザー名簿は `setting/user-list.csv`
 
 ## 禁止・注意
 
