@@ -8,6 +8,8 @@
 .\scripts\start-admin.ps1
 ```
 
+起動時に GitHub の `main` とのズレを確認する（詳細: [`git-workflow.md`](git-workflow.md)）。Agent から起動するときは `START_ADMIN_NO_PAUSE=1`。
+
 - URL: http://127.0.0.1:5055/
 - 一覧 API: `GET /api/users` → `ok: true` とユーザー／年次ブック（`url` は Drive 上に実在するときのみ）
 - 管理画面: ユーザー・年のプルダウンで絞り込み。存在しないファイルへの「開く」リンクは出さない
@@ -112,6 +114,8 @@
 .\scripts\deploy-admin.ps1 -ProjectId "positive-design-480606-c7"
 ```
 
+デプロイ前に GitHub の `main` より遅れていないことを確認する（遅れ／分岐／衝突見込みが残れば中止。明示時のみ `-SkipGitSyncCheck`）。
+
 既定:
 
 | 項目 | 値 |
@@ -134,7 +138,7 @@
 .\scripts\deploy-admin.ps1 -ProjectId "<GCP_PROJECT_ID>"
 ```
 
-IAP 手順をスキップする場合: `-SkipIap`。ビルド省略: `-SkipBuild`。
+IAP 手順をスキップする場合: `-SkipIap`。ビルド省略: `-SkipBuild`。同期チェック省略（非推奨）: `-SkipGitSyncCheck`。
 
 ### 環境変数（Cloud Run）
 

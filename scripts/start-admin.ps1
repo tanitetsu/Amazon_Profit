@@ -1,6 +1,31 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 
+# GitHub の main とローカルのズレを確認（SKIP_GIT_SYNC_CHECK=1 で省略可）
+# 手動起動時: 遅れていれば pull を尋ね、まだ遅れなら Enter 待ち（忘れ防止）
+# Agent 起動（START_ADMIN_NO_PAUSE=1）: 警告のみ（入力待ちしない）
+$gitSyncScript = Join-Path -Path (Get-Location) -ChildPath "check-git-sync.ps1"
+if (Test-Path -LiteralPath $gitSyncScript) {
+  try {
+    $psExe = Join-Path $PSHOME "powershell.exe"
+    if (-not (Test-Path -LiteralPath $psExe)) { $psExe = "powershell.exe" }
+    $syncArgs = @(
+      "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $gitSyncScript
+    )
+    if ($env:START_ADMIN_NO_PAUSE -ne "1") {
+      $syncArgs += "-PromptPull"
+      $syncArgs += "-PauseIfBehind"
+    }
+    $p = Start-Process -FilePath $psExe -ArgumentList $syncArgs -Wait -PassThru -NoNewWindow
+    if ($null -ne $p -and $p.ExitCode -ne 0 -and $p.ExitCode -ne $null) {
+      # 警告のみの想定（FailIfBehind なし）。異常時も起動は続行
+    }
+  } catch {
+    Write-Host "[git同期] 確認スクリプトの実行に失敗しました: $_" -ForegroundColor Yellow
+  }
+  Write-Host ""
+}
+
 $Port = 5055
 $Url = "http://127.0.0.1:$Port/"
 $ChromeUserDataDir = Join-Path $PWD ".chrome-admin-profile"

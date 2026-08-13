@@ -4,6 +4,7 @@
 # Usage:
 #   .\scripts\deploy-admin.ps1 -ProjectId "my-gcp-project"
 #   .\scripts\deploy-admin.ps1 -ProjectId "my-gcp-project" -Region "asia-northeast1" -SkipBuild
+#   .\scripts\deploy-admin.ps1 -ProjectId "my-gcp-project" -SkipGitSyncCheck
 #
 # After first deploy: share Drive folder User_Acounting with the runtime SA as Editor
 # (see docs/operations.md).
@@ -23,11 +24,30 @@ param(
   [string]$OauthServiceName = "amazon-profit-oauth",
   [switch]$SkipBuild,
   [switch]$SkipIap,
-  [switch]$SkipOauth
+  [switch]$SkipOauth,
+  [switch]$SkipGitSyncCheck
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
+
+# 古いローカルから本番へ載せないよう、GitHub main とのズレを確認
+if (-not $SkipGitSyncCheck -and $env:SKIP_GIT_SYNC_CHECK -ne "1") {
+  $gitSyncScript = Join-Path (Get-Location) "check-git-sync.ps1"
+  if (Test-Path -LiteralPath $gitSyncScript) {
+    $psExe = Join-Path $PSHOME "powershell.exe"
+    if (-not (Test-Path -LiteralPath $psExe)) { $psExe = "powershell.exe" }
+    $syncArgs = @(
+      "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $gitSyncScript,
+      "-PromptPull", "-FailIfBehind"
+    )
+    $p = Start-Process -FilePath $psExe -ArgumentList $syncArgs -Wait -PassThru -NoNewWindow
+    if ($null -eq $p -or $p.ExitCode -ne 0) {
+      throw "GitHub の main とローカルに齟齬があるためデプロイを中止しました。git pull 後に再実行するか、-SkipGitSyncCheck を指定してください。"
+    }
+    Write-Host ""
+  }
+}
 
 if (-not $BucketName) {
   $BucketName = "$ProjectId-amazon-profit-admin"

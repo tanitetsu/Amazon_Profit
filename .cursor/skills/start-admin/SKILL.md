@@ -20,16 +20,11 @@ disable-model-invocation: true
 
 ### Agent から（推奨）
 
-長時間プロセスなのでバックグラウンド起動する:
+長時間プロセスなのでバックグラウンド起動し、同期チェックの入力待ちを避ける:
 
 ```powershell
+$env:START_ADMIN_NO_PAUSE = "1"
 .\scripts\start-admin.ps1
-```
-
-または:
-
-```powershell
-.\scripts\start-admin.bat
 ```
 
 - `required_permissions`: `["all"]`（ポート解放・venv）
@@ -37,6 +32,7 @@ disable-model-invocation: true
 - 出力に `Running on` / `http://127.0.0.1:5055` が出るまで待つ
 - スクリプトが準備完了後に **Chrome で自動オープン**する（無ければ既定ブラウザ）
 - URL を案内する
+- 起動時に `check-git-sync.ps1` が走る。`START_ADMIN_NO_PAUSE=1` のため警告のみ（入力待ちしない）
 
 ### ユーザーが手動で
 
@@ -50,6 +46,11 @@ disable-model-invocation: true
 - スクリプトがポート **5055** 使用中ならリスナーを止めてから起動する
 - `app.py` / `static/` / `templates/` / `app/provision.py` などの変更反映は**再起動が必要**
 - ポート解放に失敗したら、既存コンソールで Ctrl+C してから再実行
+
+## 想定される挙動
+
+- 起動時に `check-git-sync.ps1` が GitHub の `main` とのズレを確認する。手動起動では遅れていれば pull を尋ね、断っても Enter 待ち。`START_ADMIN_NO_PAUSE=1` のときは警告のみ。`SKIP_GIT_SYNC_CHECK=1` で省略可
+- ポート **5055** 使用中 → リスナーを止めて再起動する
 
 ## 起動後の確認
 

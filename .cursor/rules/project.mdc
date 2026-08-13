@@ -5,7 +5,7 @@ alwaysApply: true
 
 # amazon-profit-mail（OAuth/サービス名: amazon-profit-viewer）
 
-- 設計正本: `docs/architecture.md`。シート＆メール取込: `docs/sheet-and-mail-spec.md`。AI_Cripping 統合: `docs/integration-ai-clipping.md`。本番前: `docs/pre-production-checklist.md`
+- 設計正本: `docs/architecture.md`。シート＆メール取込: `docs/sheet-and-mail-spec.md`。AI_Cripping 統合: `docs/integration-ai-clipping.md`。本番前: `docs/pre-production-checklist.md`。Git 同期: `docs/git-workflow.md`
 - ブック正本は Drive テンプレ `amazon-profit_TEMPLATE.xlsx`（`template_ops` / `scripts/build_workbook_template.py`）。月次テンプレ詳細は 2000 行分横結合済み。空行に☑なし。☑は注文 APPEND／Excel データ行のみ
 - **Agent／自動化はライブ Drive テンプレと bound Apps Script を変更しない**（再ビルド・API 再配備・表示切替も依頼なしではしない）。運営の手動編集（表示状態・スクリプト Save 含む）はあり得る。新規ユーザーは当時のテンプレ内容を copy 継承
 - 新規ユーザーはテンプレ copy → 直後に `月次テンプレート` を非表示（`hide_month_template_sheet`）。月次は `月次テンプレート` duplicate（結合・CF・書式は継承。Excel 取込は値・☑・リンクのみで再スタイルしない）。明細 APPEND。欠月は間も作成。月別・タブは降順
