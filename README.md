@@ -2,7 +2,7 @@
 
 OAuth / 本番サービス名: **`amazon-profit-viewer`**
 
-設計の正本: [docs/architecture.md](docs/architecture.md) · 運用: [docs/operations.md](docs/operations.md) · 統合: [docs/integration-ai-clipping.md](docs/integration-ai-clipping.md) · リポ境界: [docs/repo-boundaries.md](docs/repo-boundaries.md) · **本番前**: [docs/pre-production-checklist.md](docs/pre-production-checklist.md)
+設計の正本: [docs/architecture.md](docs/architecture.md) · 運用: [docs/operations.md](docs/operations.md) · Git: [docs/git-workflow.md](docs/git-workflow.md) · 統合: [docs/integration-ai-clipping.md](docs/integration-ai-clipping.md) · リポ境界: [docs/repo-boundaries.md](docs/repo-boundaries.md) · **本番前**: [docs/pre-production-checklist.md](docs/pre-production-checklist.md)
 
 ## 確定仕様（初回ユーザー）
 

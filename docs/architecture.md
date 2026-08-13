@@ -109,7 +109,7 @@
 
 ### ローカル
 
-- 起動: `.\scripts\start-admin.ps1` → http://127.0.0.1:5055/
+- 起動: `.\scripts\start-admin.ps1` → http://127.0.0.1:5055/（起動時に GitHub `main` との同期確認。詳細: [`git-workflow.md`](git-workflow.md)）
 - 認証は未実装（`127.0.0.1` のみ。運営マシン想定）
 - Drive/Sheets: 運営 OAuth（`secrets/operator_token.json`）。**gmail.send 追加後は `python scripts/oauth_operator.py` を再実行**
 - ユーザー一覧正本: AI_Cripping GCS `setting/user-list.csv`（運営設定のみ `config/app_config.json`）
@@ -124,7 +124,7 @@
 - ユーザー一覧正本: GCS（`USERS_CONFIG_GCS_URI`）
 - **同意 callback / ポーリング URL**: 別サービス `amazon-profit-oauth`（**未認証公開**・`APP_SURFACE=public`）。Admin の IAP URL をメールに載せない。`PUBLIC_BASE_URL` はその公開オリジン
 - 環境変数例: `PUBLIC_BASE_URL`, `MAIL_POLL_SECRET`, `OPERATOR_TOKEN_GCS_URI`, `OAUTH_CLIENT_GCS_URI`, `GMAIL_INVITE_SECRET`, **`ADMIN_USE_ADC=1`（必須）**
-- デプロイ: `.\scripts\deploy-admin.ps1 -ProjectId <GCP_PROJECT>`（Admin + 公開 OAuth を同スクリプト）
+- デプロイ: `.\scripts\deploy-admin.ps1 -ProjectId <GCP_PROJECT>`（Admin + 公開 OAuth を同スクリプト。遅れ／分岐が残れば中止）
 
 ### 本番展開時の認証まわり（指摘・確認必須）
 

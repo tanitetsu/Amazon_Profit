@@ -1,0 +1,21 @@
+---
+description: PC / スマホ（Cloud Agent）で修正開始前に GitHub main とのズレ・衝突見込みを確認する
+alwaysApply: true
+---
+# Git 同期チェック（PC とスマホで同仕様）
+
+詳細: `docs/git-workflow.md` / `check-git-sync.ps1`（Windows）/ `check-git-sync.sh`（Linux・Cloud Agent）
+
+## 要点
+
+- 正本は GitHub の `main`。どちらの端末も、作業開始前に同期確認する
+- **PC**: 修正・デプロイ前に `.\check-git-sync.ps1 -PromptPull`（起動時は start-admin が自動）
+- **スマホ / Cloud Agent**: コード修正に入る**前に**必ず `./check-git-sync.sh --agent` を実行する
+- `--agent` の動き（入力なし・PC と同方針）:
+  - **遅れのみ・衝突なし・きれい** → `git pull origin main` を自動実行
+  - **ぶつかりそう／未コミット＋遅れ／分岐が残る** → 警告して **exit 1。修正に入らない**（ユーザー指示を待つ）
+  - **進みのみ（push 忘れ）** → pull **しない**。push を促す（作業枝は追跡枝との差で判定。main より進んでいるだけでは警告しない）
+- **遅れがあるとき（必須）**: pull するまでコード修正に入らない（ユーザーが明示的に「このまま進めて」のみ例外）
+- **ぶつかりそうなとき（必須）**: ファイル名を警告し、勝手に pull しない。解消方針を聞いてから続ける
+- `start-admin`（手動・PC）: pull 提案、衝突見込みなら強い確認、残れば Enter 待ち
+- `deploy-admin.ps1`（PC）: 遅れ／分岐／衝突見込みが残ればデプロイ中止（`-SkipGitSyncCheck` は明示時のみ）
