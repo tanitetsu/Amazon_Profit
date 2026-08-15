@@ -687,13 +687,13 @@ def month_style_requests(
     )
 
     def _kpi_style(i: int) -> tuple[dict, dict]:
-        if i in (0, 1, 2):
+        if i in (0, 1, 2, 3):
             return SUMMARY_BLACK_BG, WHITE
-        if i == 3:
+        if i == 4:
             return SUMMARY_BLUE_BG, WHITE
-        if i in (4, 5):
+        if i in (5, 6):
             return SUMMARY_ORANGE_BG, WHITE
-        if i in (6, 7):
+        if i in (7, 8):
             return SUMMARY_GREEN_BG, WHITE
         return COUNT_LABEL_BG, BLACK
 
@@ -769,10 +769,10 @@ def month_style_requests(
             }
         }
 
-    for i in (0, 1, 2, 3, 4, 5, 6):
+    for i in (0, 1, 2, 3, 4, 5, 6, 7):
         reqs.append(_fmt(MONTH_SUMMARY_MERGES[i][0], "#,##0"))
-    reqs.append(_fmt(MONTH_SUMMARY_MERGES[7][0], "0.0%", "PERCENT"))
-    for i in (8, 9, 10, 11):
+    reqs.append(_fmt(MONTH_SUMMARY_MERGES[8][0], "0.0%", "PERCENT"))
+    for i in (9, 10, 11, 12):
         reqs.append(_fmt(MONTH_SUMMARY_MERGES[i][0], "#,##0"))
 
     for f in DETAIL_FIELDS:

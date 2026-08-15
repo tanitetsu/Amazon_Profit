@@ -38,7 +38,7 @@ from app.schema import (
     STATUS_RETURN,
     STATUS_RETURN_FONT_PT,
     col_letter,
-    points_fallback,
+    points_fallback_from_price_tax,
     spreadsheet_title_from_gmail,
     user_id_from_gmail,
 )
@@ -183,12 +183,6 @@ def _parse_date(s: str | None) -> date | None:
         return None
 
 
-def _tax_included(price: int | None, tax: int | None) -> int | None:
-    if price is None and tax is None:
-        return None
-    return int(price or 0) + int(tax or 0)
-
-
 def _month_key(d: date) -> str:
     return f"{d.year:04d}-{d.month:02d}"
 
@@ -247,6 +241,7 @@ def _order_row_values(
     order_date: date | None,
     ship_by: date | None,
     price: int | None,
+    tax: int | None,
     fee: int | None,
     points: int | None,
     proceeds: int | None,
@@ -262,6 +257,7 @@ def _order_row_values(
     vals[COL["ship_by"] - 1] = ship_by.isoformat() if ship_by else ""
     vals[COL["status"] - 1] = STATUS_OPEN
     vals[COL["price"] - 1] = price
+    vals[COL["tax"] - 1] = tax
     vals[COL["fee"] - 1] = fee
     vals[COL["points"] - 1] = points
     vals[COL["proceeds"] - 1] = proceeds
@@ -358,6 +354,7 @@ def _ensure_existing_order_row(
     order_date: date | None,
     ship_by: date | None,
     price: int | None,
+    tax: int | None,
     fee: int | None,
     points: int | None,
     proceeds: int | None,
@@ -374,6 +371,7 @@ def _ensure_existing_order_row(
         order_date=order_date,
         ship_by=ship_by,
         price=price,
+        tax=tax,
         fee=fee,
         points=points,
         proceeds=proceeds,
@@ -479,10 +477,11 @@ def _append_order_lines(
     for line in lines:
         sku = normalize_sku(line.sku)
         oid = (parsed.order_id or "").strip()
-        price = _tax_included(line.price, line.tax)
+        price = line.price
+        tax = line.tax
         points = line.points
         if points is None:
-            points = points_fallback(price)
+            points = points_fallback_from_price_tax(price, tax)
         title = line.title or ""
 
         match = next(
@@ -507,6 +506,7 @@ def _append_order_lines(
                 order_date=order_date,
                 ship_by=ship_by,
                 price=price,
+                tax=tax,
                 fee=line.fee,
                 points=points,
                 proceeds=line.proceeds,
@@ -524,6 +524,7 @@ def _append_order_lines(
             order_date=order_date,
             ship_by=ship_by,
             price=price,
+            tax=tax,
             fee=line.fee,
             points=points,
             proceeds=line.proceeds,

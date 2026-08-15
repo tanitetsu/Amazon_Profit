@@ -75,6 +75,17 @@
 日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認とデプロイ程度。  
 認証の載せ方・問題の抑え方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
 
+## 販売価格 / 税金レイアウト移行
+
+既存の月次・ダッシュボード・テンプレを「税込価格」1列から「販売価格＋税金」へ直す:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py --dry-run
+.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py
+```
+
+`asamiodaka.b` の年次ブックは変更前に同フォルダへ `.bak-price-tax-*` コピーする。既存行の金額はメールの「価格」「税金」を再入力し、ユーザー編集列は書かない。
+
 ## テンプレブック
 
 **Agent／自動化:** ライブ Drive テンプレと bound Apps Script は変更しない（依頼なしの再ビルド・API 再配備・表示切替なし）。運営の手動編集（表示・スクリプト Save 含む）はあり得る。新規ユーザーは当時のテンプレ内容を copy 継承。ユーザー本は copy 直後に `月次テンプレート` を非表示。

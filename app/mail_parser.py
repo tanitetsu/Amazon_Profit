@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from app.order_sku import is_placeholder_sku, normalize_sku
-from app.schema import points_fallback
+from app.schema import points_fallback_from_price_tax
 
 ORDER_ID_RE = re.compile(r"\b(\d{3}-\d{7}-\d{7})\b")
 MONEY_RE = re.compile(r"[￥¥]\s*([0-9,]+)")
@@ -148,8 +148,8 @@ def _line_from_block(block: str, *, default_title: str = "") -> OrderLine | None
     proceeds = _money_after(r"売上金\s*[:：]", block)
     pt_m = re.search(r"付与されたAmazonポイント\s*[:：]\s*(\d+)", block)
     points = int(pt_m.group(1)) if pt_m else None
-    if points is None and price is not None:
-        points = points_fallback(price)
+    if points is None:
+        points = points_fallback_from_price_tax(price, tax)
     # Drop empty junk (headline-only / no sku & no money)
     if not sku and not title and price is None:
         return None
