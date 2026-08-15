@@ -1,3 +1,10 @@
 {
-  "install": "python3 -m pip install --user -r requirements.txt -r requirements-admin.txt pytest openpyxl"
+  "name": "amazon-profit-viewer",
+  "install": "python3 -m pip install --user -r requirements.txt -r requirements-admin.txt pytest openpyxl",
+  "terminals": [
+    {
+      "name": "admin-ui",
+      "command": "python3 app.py"
+    }
+  ]
 }
