@@ -41,7 +41,7 @@
 - レイアウト正本はテンプレ（単位幅・列は `app/schema.py`）。`app/template_ops.py` が運用パス
 - 既存本番は移行しない。詳細・検知メール・メルカリ規則は `sheet-and-mail-spec.md`
 - ユーザー統合正本: [`docs/integration-ai-clipping.md`](integration-ai-clipping.md)（名簿正本は AI_Cripping `user-list.csv`。最終形モノリポ）
-- **開発正は Cloud Agent**（認証の載せ方: [`cloud-agent-environment.md`](cloud-agent-environment.md)。`AIC_GCS_CREDENTIALS` はパスまたは JSON 本文）。PC ローカル Agent は手動確認とデプロイ程度
+- **開発正は Cloud Agent**（認証の載せ方: [`cloud-agent-environment.md`](cloud-agent-environment.md)。`AIC_GCS_CREDENTIALS` はパスまたは JSON 本文）。PC ローカル Agent は手動確認程度。本番デプロイは依頼があれば `scripts/deploy-admin.sh`
 
 ### Sheets API 書き込み
 
@@ -126,7 +126,7 @@
 - ユーザー一覧正本: GCS（`USERS_CONFIG_GCS_URI`）
 - **同意 callback / ポーリング URL**: 別サービス `amazon-profit-oauth`（**未認証公開**・`APP_SURFACE=public`）。Admin の IAP URL をメールに載せない。`PUBLIC_BASE_URL` はその公開オリジン
 - 環境変数例: `PUBLIC_BASE_URL`, `MAIL_POLL_SECRET`, `OPERATOR_TOKEN_GCS_URI`, `OAUTH_CLIENT_GCS_URI`, `GMAIL_INVITE_SECRET`, **`ADMIN_USE_ADC=1`（必須）**
-- デプロイ: `.\scripts\deploy-admin.ps1 -ProjectId <GCP_PROJECT>`（Admin + 公開 OAuth を同スクリプト。遅れ／分岐が残れば中止）
+- デプロイ: Cloud Agent は `./scripts/deploy-admin.sh`（最新 `origin/main`）。PC は `.\scripts\deploy-admin.ps1 -ProjectId <GCP_PROJECT>`。Admin + 公開 OAuth を同スクリプト。遅れ／分岐が残れば中止
 
 ### 本番展開時の認証まわり（指摘・確認必須）
 
