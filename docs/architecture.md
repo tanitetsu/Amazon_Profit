@@ -40,6 +40,7 @@
 - レイアウト正本はテンプレ（単位幅・列は `app/schema.py`）。`app/template_ops.py` が運用パス
 - 既存本番は移行しない。詳細・検知メール・メルカリ規則は `sheet-and-mail-spec.md`
 - ユーザー統合正本: [`docs/integration-ai-clipping.md`](integration-ai-clipping.md)（名簿正本は AI_Cripping `user-list.csv`。最終形モノリポ）
+- **開発正は Cloud Agent**（認証の載せ方: [`cloud-agent-environment.md`](cloud-agent-environment.md)）。PC ローカル Agent は手動確認とデプロイ程度
 
 ### Sheets API 書き込み
 

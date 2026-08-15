@@ -27,12 +27,13 @@ OAuth / 本番サービス名: **amazon-profit-viewer**。正本は常に **GitH
 
 ## スマホと自宅 PC（推奨のやり方）
 
-両方から修正・本番反映できるようにする。正本は常に **GitHub の main**。
+両方から修正・本番反映できるようにする。正本は常に **GitHub の main**。  
+**日常のコード修正は Cloud Agent**（詳細: [`cloud-agent-environment.md`](cloud-agent-environment.md)）。PC ローカル Agent は手動確認とデプロイ程度。
 
 ```text
 【修正】
-  スマホ → Cloud Agent が枝を作って直す → PR →（確認）→ main に merge
-  自宅 PC → 同じ（ローカルで直すなら、できれば枝 → push → PR）
+  スマホ / PC → Cloud Agent が枝を作って直す → PR →（確認）→ main に merge
+  自宅 PC のフォルダでは原則コードを直さない（未コミットを残すと Agent の枝切り替えが失敗する）
 
 【デプロイ】
   必ず「いまの main の最新」から、同時に1本だけ

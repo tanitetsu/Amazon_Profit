@@ -70,6 +70,11 @@
 .\.venv\Scripts\python.exe -c "from app.schema import SUMMARY_SHEET; from app.sheet_builder import build_summary_grid, month_sheet_skeleton, period_from_months; m=['2026-08']; ps,pe=period_from_months(m); assert 'ダッシュボード' in build_summary_grid('a@b.com',2026,ps,pe,m)[0][0]; assert month_sheet_skeleton(m[0])[0][0]==m[0]; print('ok')"
 ```
 
+## Cloud Agent 開発（案 B）
+
+日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認とデプロイ程度。  
+認証の載せ方・問題の抑え方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
+
 ## テンプレブック
 
 **Agent／自動化:** ライブ Drive テンプレと bound Apps Script は変更しない（依頼なしの再ビルド・API 再配備・表示切替なし）。運営の手動編集（表示・スクリプト Save 含む）はあり得る。新規ユーザーは当時のテンプレ内容を copy 継承。ユーザー本は copy 直後に `月次テンプレート` を非表示。
