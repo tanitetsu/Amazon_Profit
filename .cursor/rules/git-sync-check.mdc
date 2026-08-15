@@ -19,3 +19,4 @@ alwaysApply: true
 - **ぶつかりそうなとき（必須）**: ファイル名を警告し、勝手に pull しない。解消方針を聞いてから続ける
 - `start-admin`（手動・PC）: pull 提案、衝突見込みなら強い確認、残れば Enter 待ち
 - `deploy-admin.ps1`（PC）: 遅れ／分岐／衝突見込みが残ればデプロイ中止（`-SkipGitSyncCheck` は明示時のみ）
+- `deploy-admin.sh`（Cloud Agent）: `origin/main` 一致＋きれいな作業ツリー。遅れ／分岐なら中止。`--skip-git-sync-check` は明示時のみ

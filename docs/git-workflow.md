@@ -28,7 +28,7 @@ OAuth / 本番サービス名: **amazon-profit-viewer**。正本は常に **GitH
 ## スマホと自宅 PC（推奨のやり方）
 
 両方から修正・本番反映できるようにする。正本は常に **GitHub の main**。  
-**日常のコード修正は Cloud Agent**（詳細: [`cloud-agent-environment.md`](cloud-agent-environment.md)）。PC ローカル Agent は手動確認とデプロイ程度。
+**日常のコード修正は Cloud Agent**（詳細: [`cloud-agent-environment.md`](cloud-agent-environment.md)）。PC ローカル Agent は手動確認程度。デプロイは依頼があれば Cloud Agent の `scripts/deploy-admin.sh`。
 
 ```text
 【修正】
@@ -37,7 +37,8 @@ OAuth / 本番サービス名: **amazon-profit-viewer**。正本は常に **GitH
 
 【デプロイ】
   必ず「いまの main の最新」から、同時に1本だけ
-  当面は自宅 PC の scripts\deploy-admin.ps1 で行う
+  Cloud Agent: ./scripts/deploy-admin.sh（ユーザーが明示したとき）
+  PC: scripts\deploy-admin.ps1
 ```
 
 ### 守ること（競合を避ける）
@@ -58,6 +59,7 @@ OAuth / 本番サービス名: **amazon-profit-viewer**。正本は常に **GitH
 | **PC** `scripts\start-admin.ps1`（手動） | 遅れていれば **「いま pull する？」**。**ぶつかりそうなら先に警告**し、既定では pull しない／強い確認。断っても **Enter 待ち** |
 | **PC** `start-admin`（Agent・`START_ADMIN_NO_PAUSE=1`） | 警告のみ（入力待ちしない）。衝突見込みも表示 |
 | **PC** `scripts\deploy-admin.ps1` | 先に pull を尋ね、遅れ／分岐／**衝突見込み**が残れば**デプロイ中止** |
+| **Cloud Agent** `scripts/deploy-admin.sh` | `origin/main` と一致＋作業ツリーきれい。遅れ／分岐なら中止。`--dry-run` で認証だけ確認可 |
 | **PC** 単体 | `.\check-git-sync.ps1 -PromptPull` |
 | **スマホ / Cloud Agent** | 修正前に `./check-git-sync.sh --agent`（必須）。安全なら自動 pull。衝突見込みや分岐が残れば**止めて修正に入らない** |
 | Cursor（両端末） | 上記を Rules で必須化 |
@@ -86,12 +88,12 @@ git pull origin main
 
 ### デバイス別の役割
 
-| どこ | 修正 | デプロイ（当面） |
+| どこ | 修正 | デプロイ |
 |------|------|------------------|
-| スマホ（Cloud Agent） | 枝 → PR → merge まで。開始前に `./check-git-sync.sh --agent` | しない（PC に任せる） |
-| 自宅 PC | 枝 → PR、または短い修正後すぐ push。開始前に同期チェック | `scripts\deploy-admin.ps1` で本番反映 |
+| スマホ（Cloud Agent） | 枝 → PR → merge まで。開始前に `./check-git-sync.sh --agent` | 依頼があれば `./scripts/deploy-admin.sh`（最新 `origin/main` のみ） |
+| 自宅 PC | 枝 → PR、または短い修正後すぐ push。開始前に同期チェック | `scripts\deploy-admin.ps1` でも可 |
 
-スマホからもデプロイまで自動化したい場合は、別途「main に入ったら自動デプロイ」を設計する（未実施）。
+`main` に入ったら自動デプロイはしない（依頼があるときだけ）。
 
 ## 事前準備（1回だけ）
 

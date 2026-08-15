@@ -72,8 +72,8 @@
 
 ## Cloud Agent 開発（案 B）
 
-日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認とデプロイ程度。  
-認証の載せ方・問題の抑え方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
+日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認程度。  
+本番デプロイは依頼があれば `./scripts/deploy-admin.sh`。認証の載せ方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
 
 ## 販売価格 / 税金レイアウト移行
 
@@ -126,11 +126,20 @@
 1. GCP プロジェクトを用意し、課金を有効化
 2. デプロイ（API・SA・AR・GCS・Cloud Run・IAP をスクリプトが処理）:
 
+Cloud Agent（依頼があるとき・最新 `origin/main`）:
+
+```bash
+./scripts/deploy-admin.sh --dry-run
+./scripts/deploy-admin.sh --skip-iap
+```
+
+PC:
+
 ```powershell
 .\scripts\deploy-admin.ps1 -ProjectId "positive-design-480606-c7"
 ```
 
-デプロイ前に GitHub の `main` より遅れていないことを確認する（遅れ／分岐／衝突見込みが残れば中止。明示時のみ `-SkipGitSyncCheck`）。
+デプロイ前に GitHub の `main` より遅れていないことを確認する（遅れ／分岐／衝突見込みが残れば中止。明示時のみ `--skip-git-sync-check` / `-SkipGitSyncCheck`）。Cloud Agent の脚本は GCS に既にある invite / mail-poll 秘密を回さない。
 
 既定:
 
@@ -150,11 +159,19 @@
 
 再デプロイ（イメージのみ）:
 
+```bash
+./scripts/deploy-admin.sh --skip-iap
+```
+
 ```powershell
 .\scripts\deploy-admin.ps1 -ProjectId "<GCP_PROJECT_ID>"
 ```
 
-IAP 手順をスキップする場合: `-SkipIap`。ビルド省略: `-SkipBuild`。同期チェック省略（非推奨）: `-SkipGitSyncCheck`。
+IAP 手順をスキップする場合: `--skip-iap` / `-SkipIap`。ビルド省略: `--skip-build` / `-SkipBuild`。同期チェック省略（非推奨）: `--skip-git-sync-check` / `-SkipGitSyncCheck`。
+
+### Cloud Agent デプロイ用 IAM（一度だけ）
+
+デプロイに使う SA（`GCP_DEPLOY_CREDENTIALS` があればそれ、なければ `AIC_GCS_CREDENTIALS`）に、ランタイム SA `amazon-profit-admin@…` への `roles/iam.serviceAccountUser` と、プロジェクトの `roles/run.admin` / `roles/cloudbuild.builds.editor` / `roles/artifactregistry.writer` が必要。未付与なら PC の GCP オーナーで付与する（JSON はチャットに貼らない）。詳細: [`cloud-agent-environment.md`](cloud-agent-environment.md)。
 
 ### 環境変数（Cloud Run）
 

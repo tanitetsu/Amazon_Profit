@@ -19,6 +19,7 @@ _FAKE_SA = {
 def _clear_cred_env(monkeypatch) -> None:
     monkeypatch.delenv("AIC_GCS_CREDENTIALS", raising=False)
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
+    monkeypatch.delenv("GCP_DEPLOY_CREDENTIALS", raising=False)
 
 
 def test_materialize_existing_file_path(tmp_path: Path) -> None:
@@ -83,6 +84,19 @@ def test_resolve_falls_back_to_local_secrets(tmp_path: Path, monkeypatch) -> Non
     local.parent.mkdir(parents=True)
     local.write_text(json.dumps(_FAKE_SA), encoding="utf-8")
     assert gc.resolve_gcs_credentials_path(root=tmp_path) == str(local)
+
+
+def test_resolve_deploy_prefers_gcp_deploy_credentials(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_cred_env(monkeypatch)
+    deploy = tmp_path / "deploy.json"
+    aic = tmp_path / "aic.json"
+    deploy.write_text(json.dumps({**_FAKE_SA, "project_id": "deploy"}), encoding="utf-8")
+    aic.write_text(json.dumps({**_FAKE_SA, "project_id": "aic"}), encoding="utf-8")
+    monkeypatch.setenv("GCP_DEPLOY_CREDENTIALS", str(deploy))
+    monkeypatch.setenv("AIC_GCS_CREDENTIALS", str(aic))
+    assert gc.resolve_deploy_credentials_path(root=tmp_path) == str(deploy)
 
 
 def test_clipping_roster_accepts_json_env(tmp_path: Path, monkeypatch) -> None:

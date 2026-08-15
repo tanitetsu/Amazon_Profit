@@ -17,14 +17,22 @@ logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
 _ENV_KEYS = ("AIC_GCS_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS")
+_DEPLOY_ENV_KEYS = (
+    "GCP_DEPLOY_CREDENTIALS",
+    "AIC_GCS_CREDENTIALS",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+)
 _MATERIALIZED_NAME = "amazon-profit-aic-gcs-sa.json"
+_DEPLOY_MATERIALIZED_NAME = "amazon-profit-gcp-deploy-sa.json"
 
 
 def _looks_like_json_object(raw: str) -> bool:
     return raw.startswith("{")
 
 
-def materialize_credentials_value(raw: str) -> str | None:
+def materialize_credentials_value(
+    raw: str, *, dest_name: str = _MATERIALIZED_NAME
+) -> str | None:
     """Return a filesystem path for a path-or-JSON env value. Does not log raw."""
     raw = (raw or "").strip()
     if not raw:
@@ -41,11 +49,11 @@ def materialize_credentials_value(raw: str) -> str | None:
     if not isinstance(parsed, dict):
         logger.warning("GCS credentials env value is JSON but not an object")
         return None
-    return _write_materialized(raw)
+    return _write_materialized(raw, dest_name=dest_name)
 
 
-def _write_materialized(raw: str) -> str:
-    dest = Path(tempfile.gettempdir()) / _MATERIALIZED_NAME
+def _write_materialized(raw: str, *, dest_name: str = _MATERIALIZED_NAME) -> str:
+    dest = Path(tempfile.gettempdir()) / dest_name
     dest.write_text(raw, encoding="utf-8")
     try:
         dest.chmod(0o600)
@@ -61,22 +69,29 @@ def apply_resolved_credentials_env(path: str) -> None:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
 
 
-def resolve_gcs_credentials_path(*, root: Path | None = None) -> str | None:
-    """Discover SA JSON: env path, env JSON body, then local sibling files."""
-    root = root or ROOT
-    for key in _ENV_KEYS:
+def _resolve_from_keys(keys: tuple[str, ...], *, dest_name: str) -> str | None:
+    for key in keys:
         raw = (os.environ.get(key) or "").strip()
         if not raw:
             continue
-        path = materialize_credentials_value(raw)
+        path = materialize_credentials_value(raw, dest_name=dest_name)
         if path:
-            apply_resolved_credentials_env(path)
             return path
         if not _looks_like_json_object(raw):
             logger.warning(
                 "GCS credentials env %s is set but is not a readable file or JSON object",
                 key,
             )
+    return None
+
+
+def resolve_gcs_credentials_path(*, root: Path | None = None) -> str | None:
+    """Discover SA JSON: env path, env JSON body, then local sibling files."""
+    root = root or ROOT
+    path = _resolve_from_keys(_ENV_KEYS, dest_name=_MATERIALIZED_NAME)
+    if path:
+        apply_resolved_credentials_env(path)
+        return path
     sibling = root.parent / "AI_Cripping" / "secrets" / "gcs_service_account.json"
     if sibling.is_file():
         apply_resolved_credentials_env(str(sibling))
@@ -86,6 +101,15 @@ def resolve_gcs_credentials_path(*, root: Path | None = None) -> str | None:
         apply_resolved_credentials_env(str(local))
         return str(local)
     return None
+
+
+def resolve_deploy_credentials_path(*, root: Path | None = None) -> str | None:
+    """SA for gcloud deploy. ``GCP_DEPLOY_CREDENTIALS`` first, then GCS roster keys."""
+    root = root or ROOT
+    path = _resolve_from_keys(_DEPLOY_ENV_KEYS, dest_name=_DEPLOY_MATERIALIZED_NAME)
+    if path:
+        return path
+    return resolve_gcs_credentials_path(root=root)
 
 
 def gcs_storage_client():
