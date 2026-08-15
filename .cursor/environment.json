@@ -1,0 +1,10 @@
+{
+  "name": "amazon-profit-mail",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "admin-server",
+      "command": "./.venv/bin/python app.py"
+    }
+  ]
+}
