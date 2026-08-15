@@ -70,6 +70,11 @@
 .\.venv\Scripts\python.exe -c "from app.schema import SUMMARY_SHEET; from app.sheet_builder import build_summary_grid, month_sheet_skeleton, period_from_months; m=['2026-08']; ps,pe=period_from_months(m); assert 'ダッシュボード' in build_summary_grid('a@b.com',2026,ps,pe,m)[0][0]; assert month_sheet_skeleton(m[0])[0][0]==m[0]; print('ok')"
 ```
 
+## Cloud Agent 開発（案 B）
+
+日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認とデプロイ程度。  
+認証の載せ方・問題の抑え方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
+
 ## 販売価格 / 税金レイアウト移行
 
 既存の月次・ダッシュボード・テンプレを「税込価格」1列から「販売価格＋税金」へ直す:

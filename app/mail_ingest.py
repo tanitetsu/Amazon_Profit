@@ -92,13 +92,12 @@ def _seen_gcs_uri(gmail: str) -> str | None:
 
 
 def _gcs_blob(uri: str):
-    from google.cloud import storage
+    from app.gcs_credentials import gcs_storage_client
 
     assert uri.startswith("gs://")
     rest = uri[5:]
     bucket_name, _, blob_name = rest.partition("/")
-    client = storage.Client()
-    return client.bucket(bucket_name).blob(blob_name)
+    return gcs_storage_client().bucket(bucket_name).blob(blob_name)
 
 
 def _parse_seen_payload(text: str) -> set[str]:

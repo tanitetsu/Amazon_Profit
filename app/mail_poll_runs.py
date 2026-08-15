@@ -26,26 +26,15 @@ DEFAULT_RETENTION_DAYS = 30
 
 def _resolve_gcs_credentials_path() -> str | None:
     """Same local SA discovery as clipping_roster (admin bucket is readable by it)."""
-    for key in ("AIC_GCS_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS"):
-        raw = (os.environ.get(key) or "").strip()
-        if raw and Path(raw).is_file():
-            return raw
-    sibling = ROOT.parent / "AI_Cripping" / "secrets" / "gcs_service_account.json"
-    if sibling.is_file():
-        return str(sibling)
-    local = SECRETS / "aic_gcs_service_account.json"
-    if local.is_file():
-        return str(local)
-    return None
+    from app.gcs_credentials import resolve_gcs_credentials_path
+
+    return resolve_gcs_credentials_path(root=ROOT)
 
 
 def _storage_client():
-    from google.cloud import storage
+    from app.gcs_credentials import gcs_storage_client
 
-    cred_path = _resolve_gcs_credentials_path()
-    if cred_path:
-        return storage.Client.from_service_account_json(cred_path)
-    return storage.Client()
+    return gcs_storage_client()
 
 
 def _app_config_gcs_uri() -> str:

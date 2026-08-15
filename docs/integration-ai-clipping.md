@@ -71,5 +71,5 @@
 ## 実装メモ
 
 - GCS バケット既定: `public-data-for-amazon`（環境変数 `GCS_BUCKET` / `AIC_GCS_BUCKET`）
-- 認証: `AIC_GCS_CREDENTIALS` または AI_Cripping の `secrets/gcs_service_account.json`（中身はコミットしない）
+- 認証: `AIC_GCS_CREDENTIALS`（ファイルパスまたは JSON 本文）または AI_Cripping の `secrets/gcs_service_account.json`（中身はコミットしない）
 - seed は AI_Cripping `multi_user_ops.ensure_user_settings_seeded` と互換のオブジェクト配置

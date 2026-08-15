@@ -44,11 +44,10 @@ def _parse_gs_uri(uri: str) -> tuple[str, str]:
 
 
 def _gcs_blob(uri: str):
-    from google.cloud import storage
+    from app.gcs_credentials import gcs_storage_client
 
     bucket_name, blob_name = _parse_gs_uri(uri)
-    client = storage.Client()
-    return client.bucket(bucket_name).blob(blob_name)
+    return gcs_storage_client().bucket(bucket_name).blob(blob_name)
 
 
 def _strip_users_key(cfg: dict[str, Any]) -> dict[str, Any]:
