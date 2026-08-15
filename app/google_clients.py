@@ -74,11 +74,11 @@ def load_operator_oauth_credentials() -> Credentials:
     token_text: str | None = None
     gcs_uri = (os.environ.get("OPERATOR_TOKEN_GCS_URI") or "").strip()
     if gcs_uri.startswith("gs://"):
-        from google.cloud import storage
+        from app.gcs_credentials import gcs_storage_client
 
         rest = gcs_uri[5:]
         bucket_name, _, blob_name = rest.partition("/")
-        blob = storage.Client().bucket(bucket_name).blob(blob_name)
+        blob = gcs_storage_client().bucket(bucket_name).blob(blob_name)
         if not call_with_retry(blob.exists, label="operator_token.gcs.exists"):
             raise FileNotFoundError(f"operator token not in GCS: {gcs_uri}")
         token_text = call_with_retry(
@@ -136,12 +136,12 @@ def _persist_operator_oauth(creds: Credentials) -> None:
     payload = creds.to_json()
     gcs_uri = (os.environ.get("OPERATOR_TOKEN_GCS_URI") or "").strip()
     if gcs_uri.startswith("gs://"):
-        from google.cloud import storage
+        from app.gcs_credentials import gcs_storage_client
 
         rest = gcs_uri[5:]
         bucket_name, _, blob_name = rest.partition("/")
         call_with_retry(
-            lambda: storage.Client()
+            lambda: gcs_storage_client()
             .bucket(bucket_name)
             .blob(blob_name)
             .upload_from_string(

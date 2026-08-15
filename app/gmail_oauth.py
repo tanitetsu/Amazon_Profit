@@ -125,13 +125,12 @@ def _tokens_gcs_prefix() -> str | None:
 
 
 def _gcs_blob(uri: str):
-    from google.cloud import storage
+    from app.gcs_credentials import gcs_storage_client
 
     assert uri.startswith("gs://")
     rest = uri[5:]
     bucket_name, _, blob_name = rest.partition("/")
-    client = storage.Client()
-    return client.bucket(bucket_name).blob(blob_name)
+    return gcs_storage_client().bucket(bucket_name).blob(blob_name)
 
 
 def token_path(gmail: str) -> Path:

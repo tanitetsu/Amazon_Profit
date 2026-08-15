@@ -36,8 +36,8 @@
 
 | 名前 | 用途 |
 |---|---|
-| `AIC_GCS_CREDENTIALS` | GCS 用 SA JSON のパス（名簿・`app_config`・Gmail トークン読み） |
-| `GOOGLE_APPLICATION_CREDENTIALS` | 上と同じファイルでも可（`AIC_GCS_CREDENTIALS` 優先） |
+| `AIC_GCS_CREDENTIALS` | GCS 用 SA。**ファイルパス**でも、Cursor secrets に貼った **JSON 本文**（`{` で始まる）でも可。本文のときは一時ファイルへ書いてから使う（名簿・`app_config`・Gmail トークン読み） |
+| `GOOGLE_APPLICATION_CREDENTIALS` | 上と同じ（パスまたは JSON 本文）。`AIC_GCS_CREDENTIALS` 優先 |
 | `APP_CONFIG_GCS_URI` | 運営設定 `gs://…/app_config.json`（`USERS_CONFIG_GCS_URI` でも可） |
 | `OPERATOR_TOKEN_GCS_URI` | 運営 OAuth JSON（Drive / Sheets / gmail.send） |
 | `OAUTH_CLIENT_GCS_URI` | OAuth クライアント JSON（トークン更新に使う） |
@@ -52,7 +52,7 @@ Cloud Run 本番はこれまでどおり `ADMIN_USE_ADC=1` + ランタイム SA�
 ## 運営が一度だけやること
 
 1. Cursor でこのリポの Cloud Agent Environment を作る（未作成なら）
-2. 上表の変数を Environment secrets に入れる（Cloud Run と同じ GCS URI。SA JSON は中身をリポに置かない）
+2. 上表の変数を Environment secrets に入れる（Cloud Run と同じ GCS URI。SA はパスか JSON 本文。中身はリポに置かない・チャットに貼らない）
 3. 以降の Agent はその Environment から起動する
 4. 自宅 PC の作業コピーはきれいにする（未コミットを残さない）
 

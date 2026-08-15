@@ -44,29 +44,15 @@ def clipping_gcs_bucket_name() -> str:
 
 
 def _resolve_credentials_path() -> str | None:
-    for key in ("AIC_GCS_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS"):
-        raw = (os.environ.get(key) or "").strip()
-        if raw and Path(raw).is_file():
-            return raw
-    sibling = ROOT.parent / "AI_Cripping" / "secrets" / "gcs_service_account.json"
-    if sibling.is_file():
-        return str(sibling)
-    local = ROOT / "secrets" / "aic_gcs_service_account.json"
-    if local.is_file():
-        return str(local)
-    return None
+    from app.gcs_credentials import resolve_gcs_credentials_path
+
+    return resolve_gcs_credentials_path(root=ROOT)
 
 
 def clipping_storage_bucket():
-    from google.cloud import storage
+    from app.gcs_credentials import gcs_storage_client
 
-    cred_path = _resolve_credentials_path()
-    if cred_path:
-        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", cred_path)
-        client = storage.Client.from_service_account_json(cred_path)
-    else:
-        client = storage.Client()
-    return client.bucket(clipping_gcs_bucket_name())
+    return gcs_storage_client().bucket(clipping_gcs_bucket_name())
 
 
 def _read_text(bucket, object_name: str) -> str:
