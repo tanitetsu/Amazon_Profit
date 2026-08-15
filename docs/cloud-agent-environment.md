@@ -92,3 +92,24 @@ Environment 接続後、中身を print せず:
 - `roles/serviceusage.serviceUsageConsumer`
 
 IAP の初回有効化はプロジェクト IAM が要ることがある。再デプロイは `--skip-iap` でよい（IAP は本番済み）。
+
+## GitHub Actions からの本番反映（クラウド完結・auto_clipper と同方式）
+
+PC や Cloud Agent VM に依存せず、**GitHub からクラウドで本番反映**する。中身は同じ `scripts/deploy-admin.sh`（gcloud 自動導入・SA 有効化・API/AR/GCS/Cloud Run/IAP まで自己完結）を GitHub ホストランナーで実行するだけ。
+
+- ワークフロー: `.github/workflows/deploy-admin.yml`
+- **トリガーは手動のみ**（`workflow_dispatch`）。`main` への push では自動デプロイしない（本リポの「デプロイは明示時だけ」方針を守るため）。GitHub の Actions 画面で対象ワークフロー → **Run workflow** を押したときが「明示の依頼」になる
+- 既定は `main` からのみ。別枝で出すときだけ `allow_non_main` を明示。CI 内では脚本の git 同期チェックは `--skip-git-sync-check` で無効化し、枝ガードで代替する
+- 入力: `dry_run` / `skip_iap`（既定 true・再デプロイ向け）/ `skip_oauth` / `skip_build` / `allow_non_main` / `project_id`
+
+### 一度だけの準備（運営）
+
+1. GitHub リポ **Settings → Secrets and variables → Actions** に `GCP_DEPLOY_CREDENTIALS` を追加（デプロイ用 SA の **JSON 本文**。チャットには貼らない）。ワークフローは受け取った JSON を一時ファイル（`chmod 600`）に書き出して脚本へパス渡しする
+2. その SA に本節冒頭の IAM ロール（`run.admin` / `cloudbuild.builds.editor` / `artifactregistry.writer` / `iam.serviceAccountUser`（対象 `amazon-profit-admin@…`）/ `storage.objectAdmin` / `serviceusage.serviceUsageConsumer`）を付与
+3. 任意: GitHub の **Environments → `production`** に必須レビュアーを設定すると、本番反映前に人手の承認ゲートを掛けられる
+
+### 使い方
+
+Actions 画面から **Run workflow**（既定は `dry_run` オフ・`skip_iap` オン）。まずは `dry_run=true` で認証と設定確認、その後 `skip_iap=true` で再デプロイ。
+
+> 注意（既知の潜在バグ）: `app/gcs_credentials.materialize_credentials_value` は SA JSON を**本文のまま env で渡すと**、長さがファイル名上限を超えて `OSError: File name too long` になる。CI では本文をファイルへ書いてパス渡しするため回避済み。`AIC_GCS_CREDENTIALS` を JSON 本文で使う運用がある場合は、この関数に `OSError` ガードを足す修正を別途推奨（本 PR の対象外）。

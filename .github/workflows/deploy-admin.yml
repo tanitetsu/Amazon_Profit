@@ -1,0 +1,106 @@
+name: Deploy admin to Cloud Run
+
+# Cloud-based production deploy (same method as the local/agent deploy: it runs
+# scripts/deploy-admin.sh). Trigger is MANUAL only (workflow_dispatch) so a push
+# to main never deploys on its own — deploy happens only when explicitly started
+# here, per the repo's deploy policy (docs/cloud-agent-environment.md).
+#
+# Required repository secret:
+#   GCP_DEPLOY_CREDENTIALS  service-account JSON (body or path). The SA needs
+#   run.admin, cloudbuild.builds.editor, artifactregistry.writer,
+#   iam.serviceAccountUser (on amazon-profit-admin@...), storage.objectAdmin,
+#   serviceusage.serviceUsageConsumer on the target project.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate credentials only (no APIs/build/deploy)"
+        type: boolean
+        default: false
+      skip_iap:
+        description: "Skip IAP enable/grant (recommended for re-deploys; IAP already on in prod)"
+        type: boolean
+        default: true
+      skip_oauth:
+        description: "Skip deploying the public OAuth service"
+        type: boolean
+        default: false
+      skip_build:
+        description: "Skip Cloud Build image build (deploy the current :latest image)"
+        type: boolean
+        default: false
+      allow_non_main:
+        description: "Allow deploying from a non-main ref (explicit override)"
+        type: boolean
+        default: false
+      project_id:
+        description: "GCP project id (blank = script default)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-admin-cloud-run
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Configure required reviewers on this environment (Settings -> Environments)
+    # to add a human approval gate before any production deploy.
+    environment: production
+    steps:
+      - name: Guard - deploy from main only
+        if: ${{ github.ref_name != 'main' && inputs.allow_non_main != true }}
+        run: |
+          echo "::error::Refusing to deploy from '${{ github.ref_name }}'. Run this workflow on main, or set allow_non_main=true to override explicitly."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify deploy credentials secret
+        env:
+          GCP_DEPLOY_CREDENTIALS: ${{ secrets.GCP_DEPLOY_CREDENTIALS }}
+        run: |
+          if [ -z "${GCP_DEPLOY_CREDENTIALS:-}" ]; then
+            echo "::error::Missing repository secret GCP_DEPLOY_CREDENTIALS (service-account JSON). Add it in Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          echo "Deploy credentials secret is present (value not printed)."
+
+      - name: Deploy to Cloud Run
+        env:
+          # Secret is the service-account JSON body. We write it to a temp key
+          # file and point the deploy script at the path (robust for large JSON;
+          # the value is never printed).
+          GCP_DEPLOY_CREDENTIALS_JSON: ${{ secrets.GCP_DEPLOY_CREDENTIALS }}
+          GCP_PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          keyfile="$(mktemp)"
+          chmod 600 "$keyfile"
+          trap 'rm -f "$keyfile"' EXIT
+          printf '%s' "$GCP_DEPLOY_CREDENTIALS_JSON" > "$keyfile"
+          export GCP_DEPLOY_CREDENTIALS="$keyfile"
+          # In CI the branch guard above already enforces main; the script's own
+          # git-sync check (PC/agent oriented) is skipped here.
+          args=(--skip-git-sync-check)
+          [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
+          [ "${{ inputs.skip_iap }}" = "true" ] && args+=(--skip-iap)
+          [ "${{ inputs.skip_oauth }}" = "true" ] && args+=(--skip-oauth)
+          [ "${{ inputs.skip_build }}" = "true" ] && args+=(--skip-build)
+          [ "${{ inputs.allow_non_main }}" = "true" ] && args+=(--allow-non-main)
+          chmod +x scripts/deploy-admin.sh
+          echo "Running: scripts/deploy-admin.sh ${args[*]}"
+          ./scripts/deploy-admin.sh "${args[@]}"

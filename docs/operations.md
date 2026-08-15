@@ -121,6 +121,8 @@
 
 未認証公開はしない。IAP で Google ログイン必須。
 
+**クラウド完結（推奨）**: GitHub Actions の手動ワークフロー `.github/workflows/deploy-admin.yml`（Actions → Run workflow）で、PC/Agent VM に依存せず本番反映できる。中身は下記 `scripts/deploy-admin.sh` と同一。準備・使い方は [`cloud-agent-environment.md`](cloud-agent-environment.md) の「GitHub Actions からの本番反映」を参照。
+
 ### 初回セットアップ
 
 1. GCP プロジェクトを用意し、課金を有効化
