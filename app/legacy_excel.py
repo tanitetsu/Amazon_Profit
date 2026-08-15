@@ -14,7 +14,7 @@ from app.schema import (
     STATUS_BUYER_CANCEL,
     STATUS_OPEN,
     STATUS_RETURN,
-    points_fallback,
+    points_fallback_from_price_tax,
 )
 
 
@@ -26,6 +26,7 @@ class LegacyOrderRow:
     order_date: date
     ship_by: date | None
     price: float | None
+    tax: float | None
     fee: float | None
     points: int | None
     proceeds: float | None
@@ -93,13 +94,16 @@ def load_legacy_orders(path: str | Path) -> list[LegacyOrderRow]:
             continue
 
         price = _as_float(ws.cell(r, 6).value)
+        tax = _as_float(ws.cell(r, 7).value)
         fee = _as_float(ws.cell(r, 8).value)
         proceeds = _as_float(ws.cell(r, 9).value)
         cost = _as_float(ws.cell(r, 10).value)
         if cost == 0:
             cost = None
         pt = _as_float(ws.cell(r, 13).value)
-        points = int(pt) if pt is not None else points_fallback(price)
+        points = (
+            int(pt) if pt is not None else points_fallback_from_price_tax(price, tax)
+        )
 
         cancelled = _as_bool01(ws.cell(r, 17).value)
         returned = _as_bool01(ws.cell(r, 18).value)
@@ -130,6 +134,7 @@ def load_legacy_orders(path: str | Path) -> list[LegacyOrderRow]:
                 order_date=od,
                 ship_by=_as_date(ws.cell(r, 5).value),
                 price=price,
+                tax=tax,
                 fee=fee,
                 points=points,
                 proceeds=proceeds,

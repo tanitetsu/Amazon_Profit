@@ -70,6 +70,17 @@
 .\.venv\Scripts\python.exe -c "from app.schema import SUMMARY_SHEET; from app.sheet_builder import build_summary_grid, month_sheet_skeleton, period_from_months; m=['2026-08']; ps,pe=period_from_months(m); assert 'ダッシュボード' in build_summary_grid('a@b.com',2026,ps,pe,m)[0][0]; assert month_sheet_skeleton(m[0])[0][0]==m[0]; print('ok')"
 ```
 
+## 販売価格 / 税金レイアウト移行
+
+既存の月次・ダッシュボード・テンプレを「税込価格」1列から「販売価格＋税金」へ直す:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py --dry-run
+.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py
+```
+
+`asamiodaka.b` の年次ブックは変更前に同フォルダへ `.bak-price-tax-*` コピーする。既存行の金額はメールの「価格」「税金」を再入力し、ユーザー編集列は書かない。
+
 ## テンプレブック
 
 **Agent／自動化:** ライブ Drive テンプレと bound Apps Script は変更しない（依頼なしの再ビルド・API 再配備・表示切替なし）。運営の手動編集（表示・スクリプト Save 含む）はあり得る。新規ユーザーは当時のテンプレ内容を copy 継承。ユーザー本は copy 直後に `月次テンプレート` を非表示。

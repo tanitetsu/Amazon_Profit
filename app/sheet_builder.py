@@ -42,6 +42,7 @@ def month_kpi_formulas(
 ) -> dict[str, Any]:
     st = f"${col_letter(COL['status'])}{start}:${col_letter(COL['status'])}{end}"
     price = f"${col_letter(COL['price'])}{start}:${col_letter(COL['price'])}{end}"
+    tax = f"${col_letter(COL['tax'])}{start}:${col_letter(COL['tax'])}{end}"
     fee = f"${col_letter(COL['fee'])}{start}:${col_letter(COL['fee'])}{end}"
     points = f"${col_letter(COL['points'])}{start}:${col_letter(COL['points'])}{end}"
     proceeds = f"${col_letter(COL['proceeds'])}{start}:${col_letter(COL['proceeds'])}{end}"
@@ -59,12 +60,13 @@ def month_kpi_formulas(
     def a(i: int) -> str:
         return month_kpi_anchor_a1(i)
 
-    sales, fee_c, pt, proceeds_c = a(0), a(1), a(2), a(3)
-    cost_c, extra_c, profit, rate = a(4), a(5), a(6), a(7)
-    orders, shipped_c, cancel, returned = a(8), a(9), a(10), a(11)
+    sales, tax_c, fee_c, pt, proceeds_c = a(0), a(1), a(2), a(3), a(4)
+    cost_c, extra_c, profit, rate = a(5), a(6), a(7), a(8)
+    orders, shipped_c, cancel, returned = a(9), a(10), a(11), a(12)
 
     return {
         sales: f'=SUMIF({st},"{open_s}",{price})',
+        tax_c: f'=SUMIF({st},"{open_s}",{tax})',
         fee_c: f'=SUMIF({st},"{open_s}",{fee})',
         pt: f'=SUMIF({st},"{open_s}",{points})',
         proceeds_c: f'=SUMIF({st},"{open_s}",{proceeds})',

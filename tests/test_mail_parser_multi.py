@@ -46,7 +46,9 @@ Amazon手数料：￥435
     assert lines[0].sku == "m_m11111111111"
     assert "矢車菊" in lines[0].title
     assert lines[0].price == 2260
+    assert lines[0].tax == 205
     assert lines[1].sku == "m_m22222222222"
+    assert lines[1].tax == 242
     assert "ネモフィラ" in lines[1].title
     assert all(not is_placeholder_sku(L.sku) for L in lines)
     assert all("販売されました" not in (L.title or "") for L in lines)

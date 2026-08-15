@@ -48,7 +48,8 @@ DETAIL_FIELDS: tuple[FieldSpec, ...] = (
     FieldSpec("order_date", "注文日", 8, align="center"),
     FieldSpec("ship_by", "出荷予定", 8, align="center"),
     FieldSpec("status", "状態", 6, align="center"),
-    FieldSpec("price", "税込価格", 10, align="right"),
+    FieldSpec("price", "販売価格", 10, align="right"),
+    FieldSpec("tax", "税金", 9, align="right"),  # same merge width as 手数料
     FieldSpec("fee", "手数料", 9, align="right"),
     FieldSpec("points", "Pt", 7, align="right"),
     FieldSpec("proceeds", "売上金", 10, align="right"),
@@ -88,7 +89,8 @@ CHECKBOX_COLS = tuple(COL[f.key] for f in DETAIL_FIELDS if f.checkbox)
 EDITABLE_COLS = tuple(COL[f.key] for f in DETAIL_FIELDS if f.editable)
 
 MONTH_SUMMARY_LABELS = [
-    "税込販売額",
+    "販売価格",
+    "税金",
     "手数料",
     "Pt",
     "売上金",
@@ -101,8 +103,8 @@ MONTH_SUMMARY_LABELS = [
     "キャンセル",
     "返品",
 ]
-# Explicit unit widths from 2026-04
-MONTH_SUMMARY_UNITS = [13, 12, 9, 13, 13, 13, 13, 11, 10, 10, 10, 10]
+# Explicit unit widths; 税金 matches 手数料 (12)
+MONTH_SUMMARY_UNITS = [13, 12, 12, 9, 13, 13, 13, 13, 11, 10, 10, 10, 10]
 
 SUMMARY_START_COL_0 = DETAIL_SPANS["sku"][0]
 
@@ -125,13 +127,13 @@ def _build_summary_merges() -> tuple[list[tuple[int, int]], list[int]]:
 MONTH_SUMMARY_MERGES, MONTH_SUMMARY_ANCHORS_0 = _build_summary_merges()
 MONTH_SUMMARY_END_COL_0 = MONTH_SUMMARY_MERGES[-1][1]
 
-SUMMARY_GROUP_SALES = (0, 1, 2, 3)
-SUMMARY_GROUP_COST = (4, 5, 6, 7)
-SUMMARY_GROUP_COUNT = (8, 9, 10, 11)
+SUMMARY_GROUP_SALES = (0, 1, 2, 3, 4)
+SUMMARY_GROUP_COST = (5, 6, 7, 8)
+SUMMARY_GROUP_COUNT = (9, 10, 11, 12)
 
 # Dashboard / template layout (canonical: Drive template workbook)
-OVERVIEW_NUM_COLS = 13
-OVERVIEW_COL_WIDTHS = [100, 120, 100, 80, 120, 110, 100, 120, 90, 80, 80, 100, 80]
+OVERVIEW_NUM_COLS = 14
+OVERVIEW_COL_WIDTHS = [100, 120, 100, 100, 80, 120, 110, 100, 120, 90, 80, 80, 100, 80]
 # 1-based rows
 OVERVIEW_SECTION_SUMMARY_ROW = 4
 OVERVIEW_KPI_LABEL_ROW = 5
@@ -150,7 +152,8 @@ OVERVIEW_KPI_VALUE_ROW_HEIGHT_PX = 42
 OVERVIEW_MONTH_ROW_HEIGHT_PX = 32  # header + data rows
 OVERVIEW_META_UPDATED_LABEL = "最終自動更新"
 OVERVIEW_METRIC_LABELS = [
-    "販売総額",
+    "販売価格",
+    "税金",
     "手数料",
     "Pt",
     "売上金",
@@ -164,9 +167,10 @@ OVERVIEW_METRIC_LABELS = [
     "返品",
 ]
 # Month-sheet MONTH_SUMMARY index for each Overview metric (1:1)
-OVERVIEW_METRIC_KPI_INDEX: list[int] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+OVERVIEW_METRIC_KPI_INDEX: list[int] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 # Label fill keys → sheet_style (white text except count)
 OVERVIEW_LABEL_COLOR_KEYS = [
+    "black",
     "black",
     "black",
     "black",
@@ -181,9 +185,9 @@ OVERVIEW_LABEL_COLOR_KEYS = [
     "count",
 ]
 # Sheet col 0-based (A=0)
-OVERVIEW_CURRENCY_COLS = (1, 2, 4, 5, 6, 7)
-OVERVIEW_COUNT_COLS = (3, 9, 10, 11, 12)
-OVERVIEW_RATE_COL = 8  # 年間 = (利益−諸費用)/売上金 → I6=(H6-G6)/E6
+OVERVIEW_CURRENCY_COLS = (1, 2, 3, 5, 6, 7, 8)
+OVERVIEW_COUNT_COLS = (4, 10, 11, 12, 13)
+OVERVIEW_RATE_COL = 9  # 年間 = (利益−諸費用)/売上金 → J6=(I6-H6)/F6
 OVERVIEW_SUMMARY_LABELS = OVERVIEW_METRIC_LABELS
 OVERVIEW_MONTH_LABELS = OVERVIEW_METRIC_LABELS
 
@@ -253,6 +257,22 @@ def points_fallback(price: float | int | None) -> int | None:
     if p < 0:
         return None
     return int(p * 0.01 + 0.5)
+
+
+def tax_included_amount(
+    price: float | int | None, tax: float | int | None
+) -> int | None:
+    """Mail 価格+税金 (not computed from a combined cell)."""
+    if price is None and tax is None:
+        return None
+    return int(price or 0) + int(tax or 0)
+
+
+def points_fallback_from_price_tax(
+    price: float | int | None, tax: float | int | None
+) -> int | None:
+    """Pt missing → 1% of (販売価格+税金), half-up."""
+    return points_fallback(tax_included_amount(price, tax))
 
 
 def apps_script_cancel_onedit_source() -> str:
