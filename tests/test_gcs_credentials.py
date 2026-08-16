@@ -42,6 +42,39 @@ def test_materialize_json_body_writes_temp_file(tmp_path: Path, monkeypatch) -> 
     assert "private_key" not in loaded
 
 
+def test_materialize_long_json_body_writes_temp_file(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A realistic SA key body (~2KB) is far longer than the OS filename limit.
+
+    Regression: Path(raw).is_file() used to raise OSError(ENAMETOOLONG) instead
+    of falling through to JSON materialization.
+    """
+    monkeypatch.setattr(gc.tempfile, "gettempdir", lambda: str(tmp_path))
+    big_sa = {
+        **_FAKE_SA,
+        "private_key_id": "k" * 40,
+        # Simulate a real PEM private key (well over any path-name limit).
+        "private_key": "-----BEGIN PRIVATE KEY-----\n"
+        + "A" * 1800
+        + "\n-----END PRIVATE KEY-----\n",
+        "token_uri": "https://oauth2.googleapis.com/token",
+    }
+    raw = json.dumps(big_sa)
+    assert len(raw) > 1024
+    path = gc.materialize_credentials_value(raw)
+    assert path is not None
+    written = Path(path)
+    assert written.is_file()
+    loaded = json.loads(written.read_text(encoding="utf-8"))
+    assert loaded["type"] == "service_account"
+    assert loaded["private_key"].startswith("-----BEGIN PRIVATE KEY-----")
+
+
+def test_is_existing_file_handles_long_non_path(tmp_path: Path) -> None:
+    assert gc._is_existing_file("{" + "x" * 5000) is False
+
+
 def test_materialize_invalid_json_returns_none(caplog) -> None:
     caplog.set_level(logging.WARNING)
     assert gc.materialize_credentials_value("{not-json") is None

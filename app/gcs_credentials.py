@@ -30,6 +30,21 @@ def _looks_like_json_object(raw: str) -> bool:
     return raw.startswith("{")
 
 
+def _is_existing_file(raw: str) -> bool:
+    """True if ``raw`` points at an existing file.
+
+    A JSON credential *body* (e.g. a full service-account key ~2KB) is not a
+    path; on most filesystems it exceeds the per-component name limit and
+    ``Path.is_file()`` raises ``OSError`` (ENAMETOOLONG) instead of returning
+    False. Treat any such error as "not a file" so JSON bodies fall through to
+    materialization.
+    """
+    try:
+        return Path(raw).is_file()
+    except OSError:
+        return False
+
+
 def materialize_credentials_value(
     raw: str, *, dest_name: str = _MATERIALIZED_NAME
 ) -> str | None:
@@ -37,7 +52,7 @@ def materialize_credentials_value(
     raw = (raw or "").strip()
     if not raw:
         return None
-    if Path(raw).is_file():
+    if _is_existing_file(raw):
         return raw
     if not _looks_like_json_object(raw):
         return None
