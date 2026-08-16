@@ -71,7 +71,14 @@ Environment 接続後、中身を print せず:
 
 失敗したら URI と SA の権限（該当バケット読取）を確認する。JSON 本文はログに出さない。
 
-## Cloud Agent からの本番デプロイ
+## Cloud Agent からの本番デプロイ（採用方式・auto_clipper と同じ）
+
+**本番反映はこの Cursor 方式を正とする**（auto_clipper と同じく、秘密は **Cursor Environment secrets** に置き、**Cloud Agent が** `deploy-admin.sh` を実行する）。GitHub Actions での実行は採用しない（GitHub ランナーは Cursor secrets を読めず、鍵を GitHub 側に二重管理することになるため）。
+
+必要な Cursor secret（値はチャットに貼らない）:
+
+- `GCP_DEPLOY_CREDENTIALS` … デプロイ用 SA の **JSON 本文**（または Cloud Run 実行 SA `amazon-profit-admin@…` の鍵でも可）。Agent 実行時に env で注入され、`deploy-admin.sh` が一時ファイルへ materialize して gcloud を有効化する。
+  - 長い JSON 本文でも安全に動く（`app/gcs_credentials._is_existing_file` の `OSError` ガード。未修正のリポでは ENAMETOOLONG になるので、その修正を先に取り込むこと）。
 
 依頼があるときだけ。自動では出さない。`ADMIN_USE_ADC` は **Agent プロセスには付けない**（付けるのは Cloud Run 側の既存設定）。
 
