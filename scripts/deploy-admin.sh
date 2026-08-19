@@ -300,7 +300,37 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
 if [[ "$SKIP_BUILD" -ne 1 ]]; then
   log "Building and pushing image via Cloud Build..."
-  gcloud builds submit --tag "$IMAGE" --project "$PROJECT_ID" .
+  # Deploy SA is not project Viewer, so gcloud cannot stream default logs and
+  # exits non-zero even when the build succeeds. Submit async and poll status.
+  local_build_id="$(
+    gcloud builds submit \
+      --async \
+      --tag "$IMAGE" \
+      --project "$PROJECT_ID" \
+      --gcs-log-dir "gs://${BUCKET_NAME}/cloudbuild-logs" \
+      --format 'value(id)' \
+      .
+  )"
+  [[ -n "$local_build_id" ]] || die "Cloud Build did not return a build id"
+  log "Cloud Build id: ${local_build_id}"
+  while true; do
+    local_status="$(
+      gcloud builds describe "$local_build_id" --project "$PROJECT_ID" --format 'value(status)'
+    )"
+    case "$local_status" in
+      SUCCESS) log "Cloud Build SUCCESS"; break ;;
+      FAILURE|INTERNAL_ERROR|TIMEOUT|CANCELLED|EXPIRED)
+        die "Cloud Build ${local_status}: https://console.cloud.google.com/cloud-build/builds/${local_build_id}?project=${PROJECT_ID}"
+        ;;
+      QUEUED|WORKING|PENDING|"")
+        sleep 5
+        ;;
+      *)
+        log "Cloud Build status: ${local_status}"
+        sleep 5
+        ;;
+    esac
+  done
 fi
 
 OAUTH_URL=""
