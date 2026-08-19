@@ -357,6 +357,8 @@ steps:
   args: ["build", "-t", "${IMAGE}", "src"]
 images:
 - "${IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
 YAML
   local_build_id="$(
     gcloud builds submit \
