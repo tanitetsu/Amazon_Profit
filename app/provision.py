@@ -10,7 +10,6 @@ from app.google_clients import (
     drive_service,
     find_folder_id,
     load_operator_credentials,
-    load_operator_oauth_credentials,
     uses_adc_credentials,
 )
 from app.schema import (
@@ -73,10 +72,9 @@ def list_user_workbooks(*, include_template: bool = False) -> list[dict[str, Any
 
     cfg = load_users_config()
     folder_name = cfg["folder_name"]
-    if uses_adc_credentials():
-        creds = load_operator_oauth_credentials()
-    else:
-        creds = load_operator_credentials()
+    # Read-only list: Cloud Run uses the runtime SA (ADC). Do not require
+    # operator gmail.send OAuth here — that token is only for consent mail.
+    creds = load_operator_credentials()
     drive = drive_service(creds)
     folder_id = find_folder_id(drive, folder_name, parent_id="root")
     if not folder_id and uses_adc_credentials():

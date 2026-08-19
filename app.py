@@ -203,13 +203,20 @@ def api_users():
             "true",
             "yes",
         )
-        users = list_user_workbooks(include_template=include)
-        for u in users:
-            g = (u.get("gmail") or "").strip()
-            if g:
-                u["gmail_linked"] = has_gmail_token(g)
+        users: list[dict] = []
+        users_error = None
+        try:
+            users = list_user_workbooks(include_template=include)
+            for u in users:
+                g = (u.get("gmail") or "").strip()
+                if g:
+                    u["gmail_linked"] = has_gmail_token(g)
+        except Exception as exc:  # noqa: BLE001
+            traceback.print_exc()
+            users_error = str(exc)
 
         # Active roster only (user-list.csv). Quitted / deleted users are absent.
+        # Returned even when Drive listing fails so the ユーザー一覧 panel still loads.
         roster: list[dict] = []
         roster_error = None
         try:
@@ -226,6 +233,8 @@ def api_users():
         payload: dict = {"ok": True, "users": users, "roster": roster}
         if roster_error:
             payload["roster_error"] = roster_error
+        if users_error:
+            payload["users_error"] = users_error
         return jsonify(payload)
     except Exception as exc:  # noqa: BLE001
         return jsonify({"ok": False, "error": str(exc)}), 500
