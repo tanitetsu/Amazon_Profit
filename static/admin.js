@@ -1,5 +1,6 @@
 let cachedUsers = [];
 let cachedRoster = [];
+let cachedUsersError = null;
 
 async function parseApiJson(res) {
   const text = await res.text();
@@ -52,6 +53,7 @@ async function fetchUsers() {
     if (!data.ok) throw new Error(data.error || "failed");
     cachedUsers = data.users || [];
     cachedRoster = data.roster || [];
+    cachedUsersError = data.users_error || null;
     renderRoster(cachedRoster, data.roster_error || null);
     fillFilters(cachedUsers);
     applyFilters();
@@ -142,6 +144,10 @@ function applyFilters() {
 
 function renderUsers(users) {
   const box = document.getElementById("userList");
+  if (cachedUsersError && !cachedUsers.length) {
+    box.innerHTML = `<p class="status err">スプレッドシート一覧の取得に失敗: ${escapeHtml(String(cachedUsersError))}</p>`;
+    return;
+  }
   if (!cachedUsers.length) {
     box.innerHTML = '<p class="muted">スプレッドシートがありません。下のフォームからユーザーを追加してください。</p>';
     return;

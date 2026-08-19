@@ -249,12 +249,16 @@ if ! gcloud_ok artifacts repositories describe "$REPO_NAME" --location "$REGION"
     --project "$PROJECT_ID"
 fi
 
-if ! gcloud_ok storage buckets describe "gs://${BUCKET_NAME}" --project "$PROJECT_ID"; then
+# objectAdmin can ls the bucket but often cannot buckets.describe / buckets.create.
+# Treat a successful ls as "already exists" so we do not try to recreate production.
+if ! gcs_exists "gs://${BUCKET_NAME}/"; then
   log "Creating bucket gs://${BUCKET_NAME} ..."
   gcloud storage buckets create "gs://${BUCKET_NAME}" \
     --project "$PROJECT_ID" \
     --location "$REGION" \
     --uniform-bucket-level-access
+else
+  log "Keeping existing gs://${BUCKET_NAME}"
 fi
 
 USERS_LOCAL="config/app_config.json"
@@ -294,9 +298,78 @@ MAIL_POLL_SECRET="$(read_secret_file "${SECRET_DIR}/mail_poll_secret.txt")"
 
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
+wait_for_cloud_build() {
+  local build_id="$1"
+  [[ -n "$build_id" ]] || die "Cloud Build did not return a build id"
+  log "Cloud Build id: ${build_id}"
+  while true; do
+    local status
+    status="$(
+      gcloud builds describe "$build_id" --project "$PROJECT_ID" --format 'value(status)'
+    )"
+    case "$status" in
+      SUCCESS) log "Cloud Build SUCCESS"; return 0 ;;
+      FAILURE|INTERNAL_ERROR|TIMEOUT|CANCELLED|EXPIRED)
+        die "Cloud Build ${status}: https://console.cloud.google.com/cloud-build/builds/${build_id}?project=${PROJECT_ID}"
+        ;;
+      QUEUED|WORKING|PENDING|"")
+        sleep 5
+        ;;
+      *)
+        log "Cloud Build status: ${status}"
+        sleep 5
+        ;;
+    esac
+  done
+}
+
 if [[ "$SKIP_BUILD" -ne 1 ]]; then
   log "Building and pushing image via Cloud Build..."
-  gcloud builds submit --tag "$IMAGE" --project "$PROJECT_ID" .
+  # gcloud builds submit with a local source dir tries to stage via the Cloud
+  # Build API and 403s on *_cloudbuild even when storage cp works. Upload the
+  # tarball ourselves, then --no-source.
+  local_src_dir="$(mktemp -d)"
+  local_src_tgz="${local_src_dir}/src.tgz"
+  local_cb_yaml="${local_src_dir}/cloudbuild.yaml"
+  local_src_gs="gs://${PROJECT_ID}_cloudbuild/source/amazon-profit-$(date -u +%Y%m%d%H%M%S).tgz"
+  tar -C "$ROOT" -czf "$local_src_tgz" \
+    --exclude='.git' \
+    --exclude='.venv' \
+    --exclude='venv' \
+    --exclude='secrets' \
+    --exclude='.cursor' \
+    --exclude='docs' \
+    --exclude='scripts' \
+    --exclude='tests' \
+    --exclude='*.md' \
+    --exclude='**/__pycache__' \
+    --exclude='.chrome-admin-profile' \
+    Dockerfile .dockerignore app.py wsgi.py requirements.txt requirements-admin.txt app templates static config
+  log "Uploading source tarball (storage cp, not builds.submit source)..."
+  gcloud storage cp "$local_src_tgz" "$local_src_gs" --project "$PROJECT_ID" >/dev/null
+  cat > "$local_cb_yaml" <<YAML
+steps:
+- name: gcr.io/cloud-builders/gsutil
+  args: ["cp", "${local_src_gs}", "src.tgz"]
+- name: ubuntu
+  args: ["bash", "-c", "mkdir -p src && tar -xzf src.tgz -C src"]
+- name: gcr.io/cloud-builders/docker
+  args: ["build", "-t", "${IMAGE}", "src"]
+images:
+- "${IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+YAML
+  local_build_id="$(
+    gcloud builds submit \
+      --no-source \
+      --async \
+      --config "$local_cb_yaml" \
+      --project "$PROJECT_ID" \
+      --format 'value(id)'
+  )"
+  rm -rf "$local_src_dir"
+  wait_for_cloud_build "$local_build_id"
 fi
 
 OAUTH_URL=""
