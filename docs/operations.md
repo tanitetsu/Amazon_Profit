@@ -38,6 +38,8 @@
 
 **OAuth 同意画面:** 本番公開済み・**審査中**（正本: `docs/architecture.md`）。テストユーザー運用は終了方針。審査完了まで未検証アプリ警告や一部制限があり得る。
 
+**運営 refresh token:** 5 分ポーリングが access token を再取得し、Drive `about` を叩いて refresh token を使い続ける（6 ヶ月未使用での無効化を防ぐ）。同意画面の公開ステータスが **Testing** だと Google が **7 日で refresh を切る**（ポーリングでは防げない）。公開ステータスは **In production** のままにする。生きているトークンで `oauth_operator.py` を何度も回すと、同一クライアントの refresh 上限（100）で古いトークンが捨てられる。再同意は失効時だけ。
+
 **本番展開チェック（Drive / 取込）:** Cloud Run では `ADMIN_USE_ADC=1` とランタイム SA でシート書込する。`User_Acounting` をその SA に Editor 共有しないと、Gmail 同意後の取込が `folder … not reachable by service account` で失敗する。同意メール送信用に運営 OAuth（`OPERATOR_TOKEN_GCS_URI`）も別途必要。詳細は `docs/architecture.md` 「本番展開時の認証まわり」。
 
 ### 環境変数（Gmail）
