@@ -5,7 +5,8 @@
 ## A. OAuth / Gmail 連携（amazon-profit-viewer）
 
 - [x] OAuth 同意画面アプリ名: `amazon-profit-viewer`
-- [x] **本番公開**（In production）済み・**Google 検証審査中**。テストユーザー運用は終了方針。審査完了まで未検証アプリ警告や一部制限があり得る
+- [x] **本番公開**（In production）済み・**Google 検証審査中**。Testing のままだと refresh が 7 日で切れる。テストユーザー運用は終了方針。審査完了まで未検証アプリ警告や一部制限があり得る
+- [x] 運営 OAuth keep-alive: 5 分 mail-poll が access 再取得＋Drive ping（6 ヶ月未使用の無効化を防ぐ。再同意は失効時だけ）
 - [ ] Gmail API 有効
 - [ ] ユーザー同意用クライアントにリダイレクト URI 登録  
       `{PUBLIC_BASE_URL}/oauth/gmail/callback`（ローカル検証なら `http://127.0.0.1:5055/...` も可）

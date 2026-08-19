@@ -39,23 +39,46 @@ def maintain_all_gmail_tokens() -> dict[str, Any]:
 
 
 def maintain_operator_oauth_token() -> dict[str, Any]:
-    """Refresh operator user OAuth (Drive/Sheets/gmail.send) access token."""
-    from google.auth.transport.requests import Request
+    """
+    Keep the operator user refresh token in active use.
 
-    from app.google_clients import load_operator_oauth_credentials, _persist_operator_oauth
-    from app.sheets_retry import call_with_retry
+    Poll every 5 minutes: force-refresh the access token, persist it, then ping
+    Drive so the grant is not idle. This prevents Google's 6-month unused-token
+    invalidation. It cannot override the 7-day refresh expiry that applies only
+    when the OAuth consent screen publishing status is Testing.
+    Never starts a browser (Cloud Run / Scheduler).
+    """
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+
+    from app.google_clients import (
+        _persist_operator_oauth,
+        load_stored_operator_oauth_credentials,
+    )
+    from app.sheets_retry import call_with_retry, execute_with_retry
 
     try:
-        creds = load_operator_oauth_credentials()
-        if creds.refresh_token:
-            def _refresh() -> None:
-                creds.refresh(Request())
-                _persist_operator_oauth(creds)
+        creds = load_stored_operator_oauth_credentials()
+        if not creds.refresh_token:
+            raise RuntimeError("operator OAuth has no refresh_token")
 
-            call_with_retry(_refresh, label="operator.oauth.maintain")
+        def _refresh() -> None:
+            creds.refresh(Request())
+            _persist_operator_oauth(creds)
+
+        call_with_retry(_refresh, label="operator.oauth.maintain")
+
+        drive = build("drive", "v3", credentials=creds, cache_discovery=False)
+        about = execute_with_retry(
+            drive.about().get(fields="user(emailAddress)"),
+            label="operator.drive.about",
+        )
+        email = ((about.get("user") or {}).get("emailAddress") or "").strip().lower()
         return {
             "ok": True,
             "expiry": creds.expiry.isoformat() if getattr(creds, "expiry", None) else None,
+            "emailAddress": email or None,
+            "refreshed": True,
         }
     except Exception as exc:  # noqa: BLE001
         traceback.print_exc()

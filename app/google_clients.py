@@ -38,6 +38,44 @@ def _operator_client_secrets_path() -> Path:
     return CLIENT_SECRETS
 
 
+def _oauth_client_application_type(path: Path) -> str | None:
+    """Return 'installed' or 'web' from an OAuth client JSON. Never logs secrets."""
+    import json
+
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(info, dict):
+        return None
+    if "installed" in info:
+        return "installed"
+    if "web" in info:
+        return "web"
+    return None
+
+
+def _require_desktop_operator_client(path: Path) -> None:
+    """InstalledAppFlow uses a random localhost port; Web clients reject that."""
+    kind = _oauth_client_application_type(path)
+    if kind == "installed":
+        return
+    if kind == "web":
+        raise FileNotFoundError(
+            f"{path} is a Web OAuth client. scripts/oauth_operator.py opens a random "
+            "localhost port, which Google rejects with redirect_uri_mismatch. "
+            "In GCP → APIs & Services → Credentials, create an OAuth client of type "
+            "Desktop, download the JSON, and save it as "
+            f"{OPERATOR_CLIENT_SECRETS} "
+            "(do not overwrite secrets/oauth_client.json — that Web client is for "
+            "user Gmail consent on amazon-profit-oauth)."
+        )
+    raise FileNotFoundError(
+        f"{path} is not a recognized OAuth client JSON "
+        "(need a Desktop client with top-level key 'installed')."
+    )
+
+
 def uses_adc_credentials() -> bool:
     """
     True when Drive/Sheets should use the runtime service account (ADC).
@@ -64,14 +102,36 @@ def load_operator_credentials() -> GoogleCredentials:
     return load_operator_oauth_credentials()
 
 
-def load_operator_oauth_credentials() -> Credentials:
-    """
-    User OAuth for the operator (26964u…). Used for Gmail send and local Drive.
-    Never uses the Cloud Run service account — SA cannot send as the operator mailbox.
-    """
-    import json
+def _operator_oauth_missing_source_message() -> str:
+    return (
+        "operator user OAuth token file not found "
+        "(set OPERATOR_TOKEN_GCS_URI or mount secrets/operator_token.json). "
+        "Re-run scripts/oauth_operator.py as 26964u@gmail.com, then upload the token to GCS."
+    )
 
-    token_text: str | None = None
+
+def _operator_oauth_unusable_message(reason: str) -> str:
+    return (
+        f"operator user OAuth token is unusable: {reason}. "
+        "Re-run scripts/oauth_operator.py as 26964u@gmail.com, then upload "
+        "secrets/operator_token.json to OPERATOR_TOKEN_GCS_URI."
+    )
+
+
+def _summarize_oauth_refresh_failure(exc: BaseException) -> str:
+    msg = str(exc).replace("\n", " ").strip()
+    if len(msg) > 240:
+        msg = msg[:240] + "…"
+    lower = msg.lower()
+    if "invalid_grant" in lower or "expired or revoked" in lower:
+        return (
+            "refresh failed (invalid_grant: token expired or revoked). "
+            f"Google said: {msg}"
+        )
+    return f"refresh failed ({type(exc).__name__}: {msg})"
+
+
+def _load_operator_token_text() -> str | None:
     gcs_uri = (os.environ.get("OPERATOR_TOKEN_GCS_URI") or "").strip()
     if gcs_uri.startswith("gs://"):
         from app.gcs_credentials import gcs_storage_client
@@ -81,42 +141,108 @@ def load_operator_oauth_credentials() -> Credentials:
         blob = gcs_storage_client().bucket(bucket_name).blob(blob_name)
         if not call_with_retry(blob.exists, label="operator_token.gcs.exists"):
             raise FileNotFoundError(f"operator token not in GCS: {gcs_uri}")
-        token_text = call_with_retry(
+        return call_with_retry(
             lambda: blob.download_as_text(encoding="utf-8"),
             label="operator_token.gcs.download",
         )
-    elif TOKEN_PATH.exists():
-        token_text = TOKEN_PATH.read_text(encoding="utf-8")
+    if TOKEN_PATH.exists():
+        return TOKEN_PATH.read_text(encoding="utf-8")
+    return None
 
-    creds: Credentials | None = None
-    if token_text:
+
+def load_stored_operator_oauth_credentials() -> Credentials:
+    """
+    Load operator user OAuth from GCS or secrets/operator_token.json and refresh
+    if needed. Never starts a browser consent flow.
+    """
+    import json
+
+    token_text = _load_operator_token_text()
+    if not token_text:
+        raise FileNotFoundError(_operator_oauth_missing_source_message())
+
+    try:
         info = json.loads(token_text)
-        # Use scopes stored in the token (not the desired SCOPES list), so
-        # has_scopes() reflects what was actually granted.
-        creds = Credentials.from_authorized_user_info(info)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(_operator_oauth_unusable_message("token JSON is invalid")) from exc
+    if not isinstance(info, dict):
+        raise RuntimeError(_operator_oauth_unusable_message("token JSON is not an object"))
 
-    if creds and creds.valid and creds.has_scopes(SCOPES):
+    # Use scopes stored in the token (not the desired SCOPES list), so
+    # has_scopes() reflects what was actually granted.
+    creds = Credentials.from_authorized_user_info(info)
+    if creds.valid and creds.has_scopes(SCOPES):
         return creds
-    if creds and creds.expired and creds.refresh_token:
-        try:
-            def _refresh() -> Credentials:
-                creds.refresh(Request())
-                if not creds.has_scopes(SCOPES):
-                    raise RuntimeError("operator OAuth missing required scopes after refresh")
-                _persist_operator_oauth(creds)
-                return creds
 
-            return call_with_retry(_refresh, label="operator.oauth.refresh")
-        except Exception:
-            pass
-
-    if uses_adc_credentials():
+    granted = [s for s in (creds.scopes or []) if s]
+    missing = [s for s in SCOPES if s not in granted]
+    if missing and creds.valid:
         raise RuntimeError(
-            "operator user OAuth token required for Gmail send "
-            "(set OPERATOR_TOKEN_GCS_URI or mount secrets/operator_token.json). "
-            "Re-run scripts/oauth_operator.py locally after adding scopes, "
-            "then upload the token to GCS."
+            _operator_oauth_unusable_message(
+                "missing scopes: " + ", ".join(missing)
+            )
         )
+
+    if creds.refresh_token:
+        def _refresh() -> Credentials:
+            creds.refresh(Request())
+            if not creds.has_scopes(SCOPES):
+                still_missing = [s for s in SCOPES if s not in (creds.scopes or [])]
+                raise RuntimeError(
+                    _operator_oauth_unusable_message(
+                        "missing scopes after refresh: " + ", ".join(still_missing)
+                    )
+                )
+            _persist_operator_oauth(creds)
+            return creds
+
+        try:
+            return call_with_retry(_refresh, label="operator.oauth.refresh")
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(
+                _operator_oauth_unusable_message(_summarize_oauth_refresh_failure(exc))
+            ) from exc
+
+    if missing:
+        raise RuntimeError(
+            _operator_oauth_unusable_message("missing scopes: " + ", ".join(missing))
+        )
+    raise RuntimeError(
+        _operator_oauth_unusable_message(
+            "access token is not valid and no refresh_token is stored"
+        )
+    )
+
+
+def probe_operator_oauth() -> dict[str, Any]:
+    """Admin UI status. Never starts a browser. Does not log token JSON."""
+    try:
+        creds = load_stored_operator_oauth_credentials()
+        expiry = getattr(creds, "expiry", None)
+        return {
+            "ok": True,
+            "expiry": expiry.isoformat() if expiry is not None else None,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": str(exc)}
+
+
+def load_operator_oauth_credentials() -> Credentials:
+    """
+    User OAuth for the operator (26964u…). Used for Gmail send and local Drive.
+    Never uses the Cloud Run service account — SA cannot send as the operator mailbox.
+    On Cloud Run (ADC), a stored token that cannot be refreshed raises.
+    Locally, a bad stored token falls through to a browser consent flow.
+    """
+    try:
+        return load_stored_operator_oauth_credentials()
+    except Exception:
+        if uses_adc_credentials():
+            raise
+        # Local recovery / scripts/oauth_operator.py: re-consent in a browser.
+
     secrets_path = _operator_client_secrets_path()
     if not secrets_path.exists():
         raise FileNotFoundError(
@@ -124,10 +250,11 @@ def load_operator_oauth_credentials() -> Credentials:
             "Create an OAuth Desktop client JSON as secrets/oauth_client_desktop.json "
             "(Web client cannot use random localhost ports)."
         )
+    _require_desktop_operator_client(secrets_path)
     # Desktop client: any localhost port. Web client needs exact redirect pre-registered.
     flow = InstalledAppFlow.from_client_secrets_file(str(secrets_path), SCOPES)
     # Force consent when scopes expand so new script.* scopes are granted.
-    creds = flow.run_local_server(port=0, prompt="consent")
+    creds = flow.run_local_server(host="127.0.0.1", port=0, prompt="consent")
     _persist_operator_oauth(creds)
     return creds
 

@@ -235,6 +235,12 @@ def api_users():
             payload["roster_error"] = roster_error
         if users_error:
             payload["users_error"] = users_error
+        try:
+            from app.google_clients import probe_operator_oauth
+
+            payload["operator_oauth"] = probe_operator_oauth()
+        except Exception as exc:  # noqa: BLE001
+            payload["operator_oauth"] = {"ok": False, "error": str(exc)}
         return jsonify(payload)
     except Exception as exc:  # noqa: BLE001
         return jsonify({"ok": False, "error": str(exc)}), 500

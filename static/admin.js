@@ -2,6 +2,19 @@ let cachedUsers = [];
 let cachedRoster = [];
 let cachedUsersError = null;
 
+function renderOperatorOauth(info) {
+  const el = document.getElementById("operatorOauthStatus");
+  if (!el) return;
+  if (info && info.ok === false && info.error) {
+    el.className = "status err";
+    el.textContent =
+      "運営 OAuth（シート作成・同意メール）が使えません: " + String(info.error);
+    return;
+  }
+  el.className = "status";
+  el.textContent = "";
+}
+
 async function parseApiJson(res) {
   const text = await res.text();
   let data = null;
@@ -54,6 +67,7 @@ async function fetchUsers() {
     cachedUsers = data.users || [];
     cachedRoster = data.roster || [];
     cachedUsersError = data.users_error || null;
+    renderOperatorOauth(data.operator_oauth || null);
     renderRoster(cachedRoster, data.roster_error || null);
     fillFilters(cachedUsers);
     applyFilters();
@@ -61,6 +75,7 @@ async function fetchUsers() {
   } catch (err) {
     box.innerHTML = `<p class="status err">一覧の取得に失敗: ${escapeHtml(String(err.message || err))}</p>`;
     rosterBox.innerHTML = `<p class="status err">名簿の取得に失敗</p>`;
+    renderOperatorOauth(null);
     fillDeleteSelect([]);
     fillFilters([]);
   }

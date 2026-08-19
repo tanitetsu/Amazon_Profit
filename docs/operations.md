@@ -15,6 +15,8 @@
 - 管理画面: ユーザー・年のプルダウンで絞り込み。存在しないファイルへの「開く」リンクは出さない
 - Drive: `secrets/operator_token.json`（`python scripts/oauth_operator.py`）
   - **gmail.send を scopes に追加したあと必ず再認可**（同意メール送信用）
+  - 本番の新規ユーザー追加・同意メールが `invalid_grant` / `token expired or revoked` のときは、GCS の運営トークンが失効している。PC で `python scripts/oauth_operator.py` を `26964u@gmail.com` として再実行し、`secrets/operator_token.json` を `OPERATOR_TOKEN_GCS_URI` へ上げる（デプロイ脚本がローカルファイルを見つければコピーする）。Agent からはブラウザ同意できない
+  - `redirect_uri_mismatch` は Web クライアント JSON を使っている印。先に `.\.venv\Scripts\python.exe scripts\check_oauth_client_type.py`。`oauth_client_desktop.json` が `installed` になるまで脚本は成功しない。`oauth_client.json`（Web）は上書きしない
 - Gmail ポーリング（5 分）:
 
 ```powershell
@@ -30,11 +32,13 @@
    - ローカル: `http://127.0.0.1:5055/oauth/gmail/callback`  
    - 公開: `{PUBLIC_BASE_URL}/oauth/gmail/callback`（`amazon-profit-oauth`）
    - JSON を `secrets/oauth_client.json` に置き、デプロイで GCS へ同期
-3. `python scripts/oauth_operator.py`（運営アカウント・gmail.send 含む）
+3. 運営ログイン用に OAuth **デスクトップ** クライアントを作り、JSON を `secrets/oauth_client_desktop.json` に置く（`oauth_client.json` の Web クライアントは上書きしない）。そのあと `python scripts/oauth_operator.py`（`26964u@gmail.com`・gmail.send 含む）。Web クライアントのままだと `redirect_uri_mismatch` になる
 4. 同意メール内リンク用に `PUBLIC_BASE_URL`＝公開 OAuth サービス（デプロイ脚本が設定）
 5. Admin でユーザー追加 → 対象 Gmail に同意メール → ユーザーが許可 → 初回取込＋以降ポーリング
 
 **OAuth 同意画面:** 本番公開済み・**審査中**（正本: `docs/architecture.md`）。テストユーザー運用は終了方針。審査完了まで未検証アプリ警告や一部制限があり得る。
+
+**運営 refresh token:** 5 分ポーリングが access token を再取得し、Drive `about` を叩いて refresh token を使い続ける（6 ヶ月未使用での無効化を防ぐ）。同意画面の公開ステータスが **Testing** だと Google が **7 日で refresh を切る**（ポーリングでは防げない）。公開ステータスは **In production** のままにする。生きているトークンで `oauth_operator.py` を何度も回すと、同一クライアントの refresh 上限（100）で古いトークンが捨てられる。再同意は失効時だけ。
 
 **本番展開チェック（Drive / 取込）:** Cloud Run では `ADMIN_USE_ADC=1` とランタイム SA でシート書込する。`User_Acounting` をその SA に Editor 共有しないと、Gmail 同意後の取込が `folder … not reachable by service account` で失敗する。同意メール送信用に運営 OAuth（`OPERATOR_TOKEN_GCS_URI`）も別途必要。詳細は `docs/architecture.md` 「本番展開時の認証まわり」。
 
