@@ -8,6 +8,7 @@ import pytest
 from google.auth.exceptions import RefreshError
 
 from app.google_clients import (
+    _require_desktop_operator_client,
     load_operator_oauth_credentials,
     load_stored_operator_oauth_credentials,
     probe_operator_oauth,
@@ -102,3 +103,21 @@ def test_cloud_run_does_not_open_browser_when_token_revoked(
         load_operator_oauth_credentials()
     assert "invalid_grant" in str(caught.value)
     flow.from_client_secrets_file.assert_not_called()
+
+
+def test_web_oauth_client_is_rejected_for_operator_login(tmp_path) -> None:
+    path = tmp_path / "oauth_client.json"
+    path.write_text('{"web": {"client_id": "example.apps.googleusercontent.com"}}', encoding="utf-8")
+    with pytest.raises(FileNotFoundError) as caught:
+        _require_desktop_operator_client(path)
+    assert "redirect_uri_mismatch" in str(caught.value)
+    assert "oauth_client_desktop.json" in str(caught.value)
+
+
+def test_desktop_oauth_client_is_accepted(tmp_path) -> None:
+    path = tmp_path / "oauth_client_desktop.json"
+    path.write_text(
+        '{"installed": {"client_id": "example.apps.googleusercontent.com"}}',
+        encoding="utf-8",
+    )
+    _require_desktop_operator_client(path)

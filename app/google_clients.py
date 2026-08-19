@@ -38,6 +38,44 @@ def _operator_client_secrets_path() -> Path:
     return CLIENT_SECRETS
 
 
+def _oauth_client_application_type(path: Path) -> str | None:
+    """Return 'installed' or 'web' from an OAuth client JSON. Never logs secrets."""
+    import json
+
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(info, dict):
+        return None
+    if "installed" in info:
+        return "installed"
+    if "web" in info:
+        return "web"
+    return None
+
+
+def _require_desktop_operator_client(path: Path) -> None:
+    """InstalledAppFlow uses a random localhost port; Web clients reject that."""
+    kind = _oauth_client_application_type(path)
+    if kind == "installed":
+        return
+    if kind == "web":
+        raise FileNotFoundError(
+            f"{path} is a Web OAuth client. scripts/oauth_operator.py opens a random "
+            "localhost port, which Google rejects with redirect_uri_mismatch. "
+            "In GCP → APIs & Services → Credentials, create an OAuth client of type "
+            "Desktop, download the JSON, and save it as "
+            f"{OPERATOR_CLIENT_SECRETS} "
+            "(do not overwrite secrets/oauth_client.json — that Web client is for "
+            "user Gmail consent on amazon-profit-oauth)."
+        )
+    raise FileNotFoundError(
+        f"{path} is not a recognized OAuth client JSON "
+        "(need a Desktop client with top-level key 'installed')."
+    )
+
+
 def uses_adc_credentials() -> bool:
     """
     True when Drive/Sheets should use the runtime service account (ADC).
@@ -212,6 +250,7 @@ def load_operator_oauth_credentials() -> Credentials:
             "Create an OAuth Desktop client JSON as secrets/oauth_client_desktop.json "
             "(Web client cannot use random localhost ports)."
         )
+    _require_desktop_operator_client(secrets_path)
     # Desktop client: any localhost port. Web client needs exact redirect pre-registered.
     flow = InstalledAppFlow.from_client_secrets_file(str(secrets_path), SCOPES)
     # Force consent when scopes expand so new script.* scopes are granted.

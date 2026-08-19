@@ -31,7 +31,7 @@
    - ローカル: `http://127.0.0.1:5055/oauth/gmail/callback`  
    - 公開: `{PUBLIC_BASE_URL}/oauth/gmail/callback`（`amazon-profit-oauth`）
    - JSON を `secrets/oauth_client.json` に置き、デプロイで GCS へ同期
-3. `python scripts/oauth_operator.py`（運営アカウント・gmail.send 含む）
+3. 運営ログイン用に OAuth **デスクトップ** クライアントを作り、JSON を `secrets/oauth_client_desktop.json` に置く（`oauth_client.json` の Web クライアントは上書きしない）。そのあと `python scripts/oauth_operator.py`（`26964u@gmail.com`・gmail.send 含む）。Web クライアントのままだと `redirect_uri_mismatch` になる
 4. 同意メール内リンク用に `PUBLIC_BASE_URL`＝公開 OAuth サービス（デプロイ脚本が設定）
 5. Admin でユーザー追加 → 対象 Gmail に同意メール → ユーザーが許可 → 初回取込＋以降ポーリング
 
