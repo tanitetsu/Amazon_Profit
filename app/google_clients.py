@@ -254,7 +254,7 @@ def load_operator_oauth_credentials() -> Credentials:
     # Desktop client: any localhost port. Web client needs exact redirect pre-registered.
     flow = InstalledAppFlow.from_client_secrets_file(str(secrets_path), SCOPES)
     # Force consent when scopes expand so new script.* scopes are granted.
-    creds = flow.run_local_server(port=0, prompt="consent")
+    creds = flow.run_local_server(host="127.0.0.1", port=0, prompt="consent")
     _persist_operator_oauth(creds)
     return creds
 

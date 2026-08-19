@@ -15,10 +15,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.google_clients import TOKEN_PATH, load_operator_credentials  # noqa: E402
-
 
 def main() -> None:
+    from app.google_clients import (
+        CLIENT_SECRETS,
+        OPERATOR_CLIENT_SECRETS,
+        TOKEN_PATH,
+        _oauth_client_application_type,
+        load_operator_credentials,
+    )
+
+    for path in (OPERATOR_CLIENT_SECRETS, CLIENT_SECRETS):
+        if not path.is_file():
+            print(f"OAuth client {path.name}: missing")
+            continue
+        print(f"OAuth client {path.name}: {_oauth_client_application_type(path)}")
+
     creds = load_operator_credentials()
     print(f"Operator token saved: {TOKEN_PATH}")
     print(f"Valid: {creds.valid}")

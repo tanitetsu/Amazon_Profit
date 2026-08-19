@@ -16,6 +16,7 @@
 - Drive: `secrets/operator_token.json`（`python scripts/oauth_operator.py`）
   - **gmail.send を scopes に追加したあと必ず再認可**（同意メール送信用）
   - 本番の新規ユーザー追加・同意メールが `invalid_grant` / `token expired or revoked` のときは、GCS の運営トークンが失効している。PC で `python scripts/oauth_operator.py` を `26964u@gmail.com` として再実行し、`secrets/operator_token.json` を `OPERATOR_TOKEN_GCS_URI` へ上げる（デプロイ脚本がローカルファイルを見つければコピーする）。Agent からはブラウザ同意できない
+  - `redirect_uri_mismatch` は Web クライアント JSON を使っている印。先に `.\.venv\Scripts\python.exe scripts\check_oauth_client_type.py`。`oauth_client_desktop.json` が `installed` になるまで脚本は成功しない。`oauth_client.json`（Web）は上書きしない
 - Gmail ポーリング（5 分）:
 
 ```powershell
