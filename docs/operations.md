@@ -15,6 +15,7 @@
 - 管理画面: ユーザー・年のプルダウンで絞り込み。存在しないファイルへの「開く」リンクは出さない
 - Drive: `secrets/operator_token.json`（`python scripts/oauth_operator.py`）
   - **gmail.send を scopes に追加したあと必ず再認可**（同意メール送信用）
+  - 本番の新規ユーザー追加・同意メールが `invalid_grant` / `token expired or revoked` のときは、GCS の運営トークンが失効している。PC で `python scripts/oauth_operator.py` を `26964u@gmail.com` として再実行し、`secrets/operator_token.json` を `OPERATOR_TOKEN_GCS_URI` へ上げる（デプロイ脚本がローカルファイルを見つければコピーする）。Agent からはブラウザ同意できない
 - Gmail ポーリング（5 分）:
 
 ```powershell

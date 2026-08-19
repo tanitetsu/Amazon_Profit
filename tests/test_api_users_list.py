@@ -49,6 +49,10 @@ def test_api_users_returns_gcs_roster_when_drive_fails() -> None:
             "app.clipping_roster.load_role_map",
             return_value={"alice": "Normal", "bob": "Admin"},
         ),
+        patch(
+            "app.google_clients.probe_operator_oauth",
+            return_value={"ok": True, "expiry": None},
+        ),
     ):
         res = client.get("/api/users")
 
@@ -62,3 +66,4 @@ def test_api_users_returns_gcs_roster_when_drive_fails() -> None:
         "bob": "Admin",
     }
     assert "roster_error" not in data
+    assert data.get("operator_oauth") == {"ok": True, "expiry": None}

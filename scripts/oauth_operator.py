@@ -2,7 +2,9 @@
 """One-time OAuth login as the operator Drive owner (26964u@gmail.com).
 
 Scopes include Drive / Sheets / Apps Script / gmail.send (consent mail).
-Re-run after scope changes so secrets/operator_token.json is refreshed.
+Re-run after scope changes, or when Cloud Run add-user / consent mail fails
+with invalid_grant (refresh token expired or revoked). Upload the new
+secrets/operator_token.json to OPERATOR_TOKEN_GCS_URI.
 """
 
 from __future__ import annotations
