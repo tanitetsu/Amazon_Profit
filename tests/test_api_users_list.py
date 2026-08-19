@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from unittest.mock import MagicMock, patch
 
 from wsgi import app as flask_app
@@ -16,7 +17,6 @@ def test_list_user_workbooks_uses_runtime_credentials_on_adc() -> None:
             return_value={"folder_name": "User_Acounting"},
         ),
         patch("app.provision.load_operator_credentials", return_value=MagicMock()) as load_creds,
-        patch("app.provision.load_operator_oauth_credentials") as load_oauth,
         patch("app.provision.drive_service", return_value=drive),
         patch("app.provision.find_folder_id", return_value=None),
         patch("app.clipping_roster.list_active_users", return_value=[]),
@@ -27,15 +27,23 @@ def test_list_user_workbooks_uses_runtime_credentials_on_adc() -> None:
 
     assert rows == []
     load_creds.assert_called_once()
-    load_oauth.assert_not_called()
+    from app import provision as provision_mod
+
+    src = inspect.getsource(provision_mod.list_user_workbooks)
+    assert "load_operator_oauth_credentials" not in src
 
 
 def test_api_users_returns_gcs_roster_when_drive_fails() -> None:
     client = flask_app.test_client()
+    api_users = flask_app.view_functions["api_users"]
     with (
-        patch(
-            "amazon_profit_admin.list_user_workbooks",
-            side_effect=RuntimeError("operator OAuth missing required scopes"),
+        patch.dict(
+            api_users.__globals__,
+            {
+                "list_user_workbooks": MagicMock(
+                    side_effect=RuntimeError("operator OAuth missing required scopes")
+                )
+            },
         ),
         patch(
             "app.clipping_roster.load_role_map",
