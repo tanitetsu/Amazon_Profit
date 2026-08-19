@@ -249,12 +249,16 @@ if ! gcloud_ok artifacts repositories describe "$REPO_NAME" --location "$REGION"
     --project "$PROJECT_ID"
 fi
 
-if ! gcloud_ok storage buckets describe "gs://${BUCKET_NAME}" --project "$PROJECT_ID"; then
+# objectAdmin can ls the bucket but often cannot buckets.describe / buckets.create.
+# Treat a successful ls as "already exists" so we do not try to recreate production.
+if ! gcs_exists "gs://${BUCKET_NAME}/"; then
   log "Creating bucket gs://${BUCKET_NAME} ..."
   gcloud storage buckets create "gs://${BUCKET_NAME}" \
     --project "$PROJECT_ID" \
     --location "$REGION" \
     --uniform-bucket-level-access
+else
+  log "Keeping existing gs://${BUCKET_NAME}"
 fi
 
 USERS_LOCAL="config/app_config.json"
