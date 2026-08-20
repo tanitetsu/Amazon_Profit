@@ -64,3 +64,31 @@ def test_annual_rate_is_profit_minus_extra_over_proceeds() -> None:
     assert '/E6)' in rate or rate.endswith("/E6)")
     assert "H6-G6" in rate.replace(" ", "")
     assert rate.startswith('=IF(E6=0,"",')
+
+
+def test_append_row_writes_profit_over_cost_rate() -> None:
+    from datetime import date
+
+    from app.mail_ingest import _order_row_values
+
+    vals = _order_row_values(
+        order_id="111-2222222-3333333",
+        sku="m_m1",
+        title="item",
+        order_date=date(2026, 8, 1),
+        ship_by=None,
+        price=1000,
+        fee=100,
+        points=10,
+        proceeds=800,
+        cost=400,
+        sheet_row=6,
+    )
+    rate = vals[COL["profit_rate"] - 1]
+    cost = col_letter(COL["cost"])
+    profit = col_letter(COL["profit"])
+    assert rate == row_profit_rate_formula(6)
+    assert f'INDIRECT("{cost}"&ROW())' in rate
+    assert f'INDIRECT("{profit}"&ROW())' in rate
+    assert col_letter(COL["proceeds"]) not in rate
+    assert col_letter(COL["extra_cost"]) not in rate
