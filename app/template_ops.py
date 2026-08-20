@@ -481,7 +481,7 @@ def provision_from_template(
     existing_file_action (when same user+year file already exists):
       - None: raise WorkbookExistsError (Admin UI retries with keep = reuse)
       - "overwrite": retire existing then copy template (API escape hatch)
-      - "keep": reuse file; protections + share + roster only
+      - "keep": reuse file; unlock remaining range locks + share + roster only
 
     Roster / IAP failures raise after rolling back this attempt (new sheets are retired).
     """
@@ -495,8 +495,9 @@ def provision_from_template(
     y = year if year is not None else date.today().year
     cfg = load_users_config()
     # After template copy, protected-range editors often keep only the owner.
-    # SA then cannot values.batchUpdate the dashboard until apply_protections.
-    # Provision writes therefore use operator OAuth on Cloud Run (ADC).
+    # apply_protections now strips all range locks so Editor users (and SA) can
+    # write every cell. Provision writes still use operator OAuth on Cloud Run.
+
     if uses_adc_credentials():
         creds = load_operator_oauth_credentials()
     else:
@@ -597,9 +598,10 @@ def provision_from_template(
                 "Amazon利益管理シートを共有しました。\n"
                 f"ファイル名: {title}\n"
                 f"リンク: {url}\n\n"
-                "編集できるのは青い列（仕入金 / 諸費用 / 発送日 / 仕入 / 発送 / "
-                "キャンセル / 完了 / コメント）です。"
-                "金額・注文情報は自動更新のため保護されています。"
+                "シートは Editor 共有です。すべてのセルを編集できます。"
+                "手入力は青い列（仕入金 / 諸費用 / 発送日 / 仕入 / 発送 / "
+                "キャンセル / 完了 / コメント）を推奨します。"
+                "切り取りやセル削除は利益の数式を壊すことがあるので、値の上書きにしてください。"
             ),
         )
         print(f"provision: share_editor {(_time.monotonic()-t2):.1f}s", flush=True)

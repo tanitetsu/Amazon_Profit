@@ -1,18 +1,15 @@
-"""Row status helpers: lock cancel checkbox for × / 返品."""
+"""Row status helpers (cancel checkbox is not range-locked)."""
 
 from __future__ import annotations
 
 from typing import Any
-
-from app.schema import COL, DATA_START_ROW, NUM_COLS
-from app.sheets_retry import batch_update, execute_with_retry
 
 BUYER_CANCEL_PROTECT_PREFIX = "apv:buyer-cancel:"
 STATUS_LOCK_PROTECT_PREFIX = "apv:status-lock:"
 
 
 def buyer_cancel_protect_description(row_1based: int) -> str:
-    # Keep old prefix name for migrate compatibility; locks キャンセル col R
+    # Keep old prefix name for migrate compatibility (historical cancel-col lock).
     return f"{BUYER_CANCEL_PROTECT_PREFIX}R{row_1based}"
 
 
@@ -100,78 +97,8 @@ def lock_cancel_checkbox(
     *,
     operator_email: str | None = None,
 ) -> None:
-    """Lock キャンセル (R) on given 1-based rows (buyer-cancel / return)."""
-    if not rows:
-        return
-    from app.sheet_protection import protection_editor_emails
-
-    editors = protection_editor_emails(operator_email=operator_email)
-    editors_body = {"users": editors}
-
-    cancel_col0 = COL["cancel"] - 1
-    meta = execute_with_retry(
-        sheets_api.spreadsheets().get(
-            spreadsheetId=spreadsheet_id, fields="sheets(properties,protectedRanges)"
-        ),
-        label="status_lock.getProtect",
-    )
-    existing_by_desc: dict[str, dict[str, Any]] = {}
-    for s in meta.get("sheets", []):
-        for pr in s.get("protectedRanges", []) or []:
-            d = pr.get("description") or ""
-            if d:
-                existing_by_desc[d] = pr
-
-    reqs: list[dict[str, Any]] = []
-    for row_1based in rows:
-        desc = buyer_cancel_protect_description(row_1based)
-        existing = existing_by_desc.get(desc)
-        if existing:
-            got = {
-                (e or "").strip().lower()
-                for e in ((existing.get("editors") or {}).get("users") or [])
-                if (e or "").strip()
-            }
-            if got != {e.lower() for e in editors}:
-                reqs.append(
-                    {
-                        "updateProtectedRange": {
-                            "protectedRange": {
-                                "protectedRangeId": existing["protectedRangeId"],
-                                "warningOnly": False,
-                                "editors": editors_body,
-                            },
-                            "fields": "warningOnly,editors",
-                        }
-                    }
-                )
-            continue
-        reqs.append(
-            {
-                "addProtectedRange": {
-                    "protectedRange": {
-                        "description": desc,
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": row_1based - 1,
-                            "endRowIndex": row_1based,
-                            "startColumnIndex": cancel_col0,
-                            "endColumnIndex": cancel_col0 + 1,
-                        },
-                        "warningOnly": False,
-                        "editors": editors_body,
-                    }
-                }
-            }
-        )
-    if reqs:
-        batch_update(
-            sheets_api,
-            spreadsheet_id,
-            reqs,
-            chunk_size=20,
-            label=f"status_lock.{sheet_title}.n{len(rows)}",
-        )
+    """No-op: cancel cells stay user-editable after auto-fill (× / 返品 included)."""
+    del sheets_api, spreadsheet_id, sheet_id, sheet_title, rows, operator_email
 
 
 # Back-compat aliases used by older scripts
@@ -203,7 +130,7 @@ def apply_buyer_cancels_many(
     *,
     operator_email: str | None = None,
 ) -> None:
-    """Legacy entry: lock cancel cells (status/value writes done by caller)."""
+    """Legacy entry: no-op (status/value writes done by caller)."""
     lock_cancel_checkbox(
         sheets_api,
         spreadsheet_id,

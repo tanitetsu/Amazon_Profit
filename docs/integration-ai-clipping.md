@@ -29,8 +29,8 @@
 | `user_id` | メールの `@` より前（例: `asamiodaka@gmail.com` → `asamiodaka`） |
 | ロール語彙 | `Admin` / `Exclusive` / `Normal`（AI_Cripping と同一） |
 | Drive 共有 | ロールに関わらずファイルは **Editor** 共有 |
-| シート範囲保護 | **Admin: 保護なし**（`apv:*` を付けない／既存は除去）。**Exclusive / Normal: 現行仕様**（自動列・ダッシュボード保護。青列と状態は編集可。buyer-cancel 行ロックあり） |
-| Admin 追加時 | ①同年次シートが無ければテンプレ copy。**あれば再利用**②保護③ Editor 共有 ④正本 `user-list.csv` に ID・ロール ⑤ `quitted_user.txt` から除外 ⑥ GCS：`setting/quitted-user/{id}/` があれば復元、無ければ Book 4 seed ⑦ Gmail 同意メール ⑧ IAP |
+| シート範囲保護 | **全ロール: 保護なし**（`apv:*` を含む範囲ロックを付けない／既存は除去）。自動記入時もロックしない。シート共有は全員 Editor |
+| Admin 追加時 | ①同年次シートが無ければテンプレ copy。**あれば再利用**②範囲保護を除去③ Editor 共有 ④正本 `user-list.csv` に ID・ロール ⑤ `quitted_user.txt` から除外 ⑥ GCS：`setting/quitted-user/{id}/` があれば復元、無ければ Book 4 seed ⑦ Gmail 同意メール ⑧ IAP |
 | 削除時 | 全年度ブックの Drive 共有解除＋正本名簿から除外＋**`quitted_user.txt` に追記**＋ **Gmail トークン／seen 削除**＋IAP 解除。シート本体・`scraping-data/{id}/`・`log/{id}/` は残す。**`setting/user/{id}/` は `setting/quitted-user/{id}/` へ移動** |
 | GCS seed（Book 4） | フォルダ `setting/user/{id}/`・`scraping-data/{id}/`・`log/{id}/`。**ng / replace / excluded / ids** = `asamiodaka.b` からコピー（全ロール）。**feed / price** = `setting/template/` からコピー（初回に `asamiodaka.b` 由来で作成。price はヘッダーのみ）。search/queue=空、fee=`10`。既存オブジェクトは再作成しない。Admin コンソール（本リポ）が名簿・seed の正本ライター |
 | 退会アーカイブ | **`setting/quitted-user/`**（`setting/` 直下）。削除時に `setting/user/{id}/` を `setting/quitted-user/{id}/` へ移動。テンプレ Admin **`26964u` の削除・退避は禁止** |
@@ -58,7 +58,7 @@
 
 ## ロードマップ
 
-1. **第1段（進行中）**: 管理者コンソールを正本ライターにする。追加／削除で `user-list.csv`＋GCS seed＋利益シート。保護はロール分岐。ユーザー追加時に AI_Cripping Cloud Run（既定 `ai-cripping-data-viewer`）へ IAP resource-level 付与／削除時に解除
+1. **第1段（進行中）**: 管理者コンソールを正本ライターにする。追加／削除で `user-list.csv`＋GCS seed＋利益シート。範囲保護は全ロールなし。ユーザー追加時に AI_Cripping Cloud Run（既定 `ai-cripping-data-viewer`）へ IAP resource-level 付与／削除時に解除
 2. **第2段**: Admin UI からクリップ／シートを開くリンク統合
 3. **第3段（最終）**: モノリポ＋単一 Cloud Run（案 C）。GCE ワーカー境界は維持
 
@@ -66,7 +66,7 @@
 
 - 正本を二重運用のままにすると、片方だけ追加が再発する → 追加 API は必ず正本を先に／同時に更新
 - モノリポを急ぐと Selenium／GCE と Drive 運用が同じ CI で壊れやすい → 名簿統合を先に完了させる
-- Admin「保護なし」は誤編集リスクがある → Admin は運営アカウントに限定する運用
+- 全ロール「保護なし」は誤編集・数式破壊のリスクがある → 手入力は青い列の値上書きを推奨し、切り取り／セル削除を避ける
 
 ## 実装メモ
 
