@@ -63,7 +63,7 @@
   - 取込済み message id: `secrets/gmail_seen/` または GCS `gmail_seen/`（cold start 耐性のため Cloud Run は GCS）
   - ポーリング実行記録: `secrets/mail_poll_runs/` または GCS `mail_poll_runs/`（日付フォルダ。Admin `/mail-poll-runs` で日付／ユーザー／エラーあり閲覧。日付空欄は保持期間内横断。約 30 日保持）
   - リダイレクト URI を OAuth クライアントに登録（例: `http://127.0.0.1:5055/oauth/gmail/callback` と公開 `PUBLIC_BASE_URL` の同パス）
-  - ポーリングはトークン維持＋メール取込のみ。全ブック横断の cancel sync は載せない（ユーザー増で OOM／timeout）
+  - ポーリングはトークン維持＋メール取込のみ。セル範囲ロックはしない。全ブック横断の cancel sync は載せない（ユーザー増で OOM／timeout）
 - シート作成・書込: ローカルは運営 OAuth。Cloud Run はランタイム SA。**同意メール送信だけは運営ユーザー OAuth**（`OPERATOR_TOKEN_GCS_URI` 可）
 
 ユーザーが用意するもの: 届いた同意メールのリンクから、Amazon 通知が届く Google アカウントで許可すること。

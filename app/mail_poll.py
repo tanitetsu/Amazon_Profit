@@ -1,4 +1,8 @@
-"""Poll Gmail-linked users: refresh tokens, then ingest Amazon mails."""
+"""Poll Gmail-linked users: refresh tokens, then ingest Amazon mails.
+
+Sheet range locks are never applied on this path (ingest writes values only).
+``mail_poll_lock`` is a cross-instance mutex, not a spreadsheet cell lock.
+"""
 
 from __future__ import annotations
 
