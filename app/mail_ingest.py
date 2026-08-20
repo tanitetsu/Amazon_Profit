@@ -10,7 +10,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from app.buyer_cancel import checkbox_data_validation_requests, lock_cancel_checkbox
+from app.buyer_cancel import checkbox_data_validation_requests
 from app.gmail_fetch import iter_amazon_mails
 from app.gmail_oauth import load_gmail_credentials
 from app.google_clients import (
@@ -644,6 +644,8 @@ def _apply_status_mail(
     status: str,
     operator_email: str | None,
 ) -> dict[str, Any]:
+    """Write ×/返品 values only. Mail-poll must not add sheet range locks."""
+    del operator_email
     oid = (parsed.order_id or "").strip()
     if not oid:
         return {"action": "status", "status": status, "updated": 0, "reason": "no_order_id"}
@@ -669,7 +671,7 @@ def _apply_status_mail(
         if not targets:
             continue
 
-        # Group by month for value writes + locks
+        # Group by month for status value writes (no cell locks).
         by_month: dict[str, list[dict[str, Any]]] = {}
         for r in targets:
             by_month.setdefault(r["month"], []).append(r)
@@ -721,14 +723,6 @@ def _apply_status_mail(
                     font_reqs,
                     label=f"ingest.statusFont.{month}",
                 )
-            lock_cancel_checkbox(
-                sheets_api,
-                spreadsheet_id,
-                sheet_id,
-                month,
-                [r["row"] for r in mrows],
-                operator_email=operator_email,
-            )
             updated += len(mrows)
 
         touch_last_auto_update(sheets_api, spreadsheet_id, gmail=gmail, year=year)

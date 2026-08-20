@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import inspect
 from email.message import EmailMessage
+from unittest.mock import MagicMock, patch
 
-from app.mail_ingest import _is_blank_cell, should_mark_mail_seen
-from app.mail_parser import parse_eml_bytes
+from app.mail_ingest import (
+    _apply_status_mail,
+    _is_blank_cell,
+    should_mark_mail_seen,
+)
+from app.mail_parser import ParsedMail, parse_eml_bytes
+from app.schema import STATUS_BUYER_CANCEL
 
 
 def test_should_mark_seen_respects_defer():
@@ -54,3 +61,61 @@ def test_status_result_shape_defer_when_no_rows():
         "reason": "no_matching_row",
     }
     assert should_mark_mail_seen(result) is False
+
+
+def test_poll_ingest_source_does_not_lock_cells():
+    import app.mail_ingest as ingest
+    import app.mail_poll as poll
+
+    ingest_src = inspect.getsource(ingest)
+    poll_src = inspect.getsource(poll)
+    assert "lock_cancel_checkbox" not in ingest_src
+    assert "addProtectedRange" not in ingest_src
+    assert "apply_protections" not in ingest_src
+    assert "lock_cancel_checkbox" not in poll_src
+    assert "addProtectedRange" not in poll_src
+    assert "apply_protections" not in poll_src
+
+
+def test_apply_status_mail_writes_values_without_protection():
+    parsed = ParsedMail(
+        kind="cancel_request",
+        subject="キャンセル",
+        order_id="111-2222222-3333333",
+        sku="m_m1",
+    )
+    sheets = MagicMock()
+    drive = MagicMock()
+    row = {
+        "month": "2026-08",
+        "sheet_id": 7,
+        "row": 6,
+        "order_id": "111-2222222-3333333",
+        "sku": "m_m1",
+    }
+    with (
+        patch("app.mail_ingest.find_spreadsheet_in_folder", return_value="sid"),
+        patch("app.mail_ingest._sheet_meta", return_value={"2026-08": 7}),
+        patch("app.mail_ingest._index_order_rows", return_value=[row]),
+        patch("app.mail_ingest.values_batch_update") as values,
+        patch("app.mail_ingest.batch_update") as batch,
+        patch("app.mail_ingest.touch_last_auto_update"),
+    ):
+        result = _apply_status_mail(
+            sheets,
+            drive,
+            gmail="user@gmail.com",
+            folder_id="folder",
+            parsed=parsed,
+            status=STATUS_BUYER_CANCEL,
+            operator_email="ops@gmail.com",
+        )
+
+    assert result["updated"] >= 1
+    assert values.called
+    for call in batch.call_args_list:
+        for req in call.args[2]:
+            assert "addProtectedRange" not in req
+            assert "deleteProtectedRange" not in req
+            assert "updateProtectedRange" not in req
+            assert "repeatCell" in req

@@ -201,7 +201,7 @@ STATUS_SELLER_CANCEL = "-"
 STATUS_RETURN = "返品"
 
 DATA_ROW_HEIGHT_PX = 32
-HINT_ROW_TEXT = "青い列のみ編集可能です（値の上書きのみ。切り取り・セル削除はしないでください）"
+HINT_ROW_TEXT = "青い列は手入力欄です（値の上書きのみ。切り取り・セル削除はしないでください）"
 STATUS_HEADER_NOTE = (
     "○：取引成立中\n"
     "×：購入者からのキャンセル\n"

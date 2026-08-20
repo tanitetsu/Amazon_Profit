@@ -236,7 +236,7 @@ def register_user(
 ) -> dict[str, Any]:
     """
     Full Admin \"add user\" flow with whole-flow retry on transient failures:
-    provision (sheet + protect + share + roster + IAP) then consent mail or ingest.
+    provision (sheet + unlock ranges + share + roster + IAP) then consent mail or ingest.
 
     On mid-flow failure, ``provision_from_template`` rolls back new sheets / new roster
     entries before re-raising so the next attempt can start clean (or ``keep`` if the

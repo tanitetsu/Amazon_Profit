@@ -36,8 +36,8 @@
 - 欠月があれば間の月も作成。月別内訳・タブは降順。メタの **最終自動更新** を毎回更新
 - 状態列 `○` / `×` / `-` / `返品` が取引ステータスの正。売上系集計は **状態=○ のみ**
 - 明細の販売額はメールの「価格」「税金」を別列で持つ（税込へ合算しない）。Pt 欠落時のみ (販売価格+税金)×1%
-- 編集可（薄青）: 仕入金 / 諸費用 / 発送日 / 仕入 / 発送 / キャンセル / 完了 / コメント
-- 範囲保護: **Admin は保護なし**。Exclusive / Normal は自動列・ダッシュボードを保護（editors=運営＋SA）
+- 編集可（薄青・手入力推奨）: 仕入金 / 諸費用 / 発送日 / 仕入 / 発送 / キャンセル / 完了 / コメント。範囲ロックはないので他列も編集できる
+- 範囲保護: **全ロールなし**。シート共有は全員 Editor。自動記入（メール取込・×／返品）でもセルをロックしない。手入力は青い列を推奨（切り取り・セル削除は利益式を壊し得る）
 - レイアウト正本はテンプレ（単位幅・列は `app/schema.py`）。`app/template_ops.py` が運用パス
 - 既存本番は移行しない。詳細・検知メール・メルカリ規則は `sheet-and-mail-spec.md`
 - ユーザー統合正本: [`docs/integration-ai-clipping.md`](integration-ai-clipping.md)（名簿正本は AI_Cripping `user-list.csv`。最終形モノリポ）
@@ -63,7 +63,7 @@
   - 取込済み message id: `secrets/gmail_seen/` または GCS `gmail_seen/`（cold start 耐性のため Cloud Run は GCS）
   - ポーリング実行記録: `secrets/mail_poll_runs/` または GCS `mail_poll_runs/`（日付フォルダ。Admin `/mail-poll-runs` で日付／ユーザー／エラーあり閲覧。日付空欄は保持期間内横断。約 30 日保持）
   - リダイレクト URI を OAuth クライアントに登録（例: `http://127.0.0.1:5055/oauth/gmail/callback` と公開 `PUBLIC_BASE_URL` の同パス）
-  - ポーリングはトークン維持＋メール取込のみ。全ブック横断の cancel sync は載せない（ユーザー増で OOM／timeout）
+  - ポーリングはトークン維持＋メール取込のみ。セル範囲ロックはしない。全ブック横断の cancel sync は載せない（ユーザー増で OOM／timeout）
 - シート作成・書込: ローカルは運営 OAuth。Cloud Run はランタイム SA。**同意メール送信だけは運営ユーザー OAuth**（`OPERATOR_TOKEN_GCS_URI` 可）
 
 ユーザーが用意するもの: 届いた同意メールのリンクから、Amazon 通知が届く Google アカウントで許可すること。
@@ -146,8 +146,8 @@
 
 - ユーザー一覧と **シートを開く**（ワンクリック）
 - **テンプレートを表示**: 正本テンプレートを別タブで直接開く
-- **新規ユーザー追加**: テンプレ copy → 当月タブ作成 → ロール別保護（Admin=なし／他=現行）→ Editor 共有（Drive 通知でシート URL）→ AI_Cripping `user-list.csv`＋GCS seed → users config → **Gmail 同意メール**（本文にもシート URL）。ユーザー作業は同意リンク＋シートを開くのみ（Apps Script 保存なし）
-- **既存ユーザーの再追加**: 同年次ファイルがあれば **必ず再利用**（レイアウト再構築しない）。保護をロールに合わせて刷新し、共有・名簿・config を更新。空に戻すのは `rebuild=True` のみ
+- **新規ユーザー追加**: テンプレ copy → 当月タブ作成 → 範囲保護を除去（全ロール）→ Editor 共有（Drive 通知でシート URL）→ AI_Cripping `user-list.csv`＋GCS seed → users config → **Gmail 同意メール**（本文にもシート URL）。ユーザー作業は同意リンク＋シートを開くのみ（Apps Script 保存なし）
+- **既存ユーザーの再追加**: 同年次ファイルがあれば **必ず再利用**（レイアウト再構築しない）。残っている範囲保護があれば除去し、共有・名簿・config を更新。空に戻すのは `rebuild=True` のみ
 - **ユーザー削除**: 共有解除＋正本名簿から除外＋config 除外＋ Gmail トークン削除（シート本体・`scraping-data`/`log` は残す）。**`setting/user/{id}/` → `setting/quitted-user/{id}/` へ移動**（詳細は integration 正本）
 - **空レイアウトへの強制 rebuild** はコード上 `provision_user(..., rebuild=True)` のみ（Admin UI からは出さない）
 

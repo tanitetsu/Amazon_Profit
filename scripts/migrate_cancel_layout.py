@@ -1,7 +1,7 @@
-"""Migrate live workbooks to cancel-column layout + buyer-cancel locks.
+"""Migrate live workbooks to cancel-column layout.
 
 Non-destructive: keeps month tabs and order rows. Inserts キャンセル column,
-updates KPI/Overview/hint/CF, and locks rows that already have strikethrough.
+updates KPI/Overview/hint/CF. Range locks are stripped (all cells user-editable).
 """
 
 from __future__ import annotations
@@ -451,7 +451,7 @@ def migrate_spreadsheet(sheets_api, spreadsheet_id: str) -> dict:
     _update_overview(sheets_api, spreadsheet_id, month_titles)
     report["overview"] = True
 
-    # data_row_counts: use wide default so A–N stay protected
+    # Strip remaining range locks (policy: all cells user-editable).
     apply_protections(sheets_api, spreadsheet_id, data_row_counts=None)
     report["protections"] = True
     return report

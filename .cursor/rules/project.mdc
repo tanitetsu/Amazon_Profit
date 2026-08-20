@@ -20,12 +20,12 @@ alwaysApply: true
 - 管理者 UI: ローカル `127.0.0.1:5055`／Cloud Run は **IAP + SA**（未認証禁止）
 - ユーザー追加時は AI_Cripping Cloud Run（既定 `ai-cripping-data-viewer`）へ IAP を自動付与、削除時は解除（`app/iap_access.py`。SA に `roles/iap.admin`）
 - ユーザーロールは AI_Cripping と同じ `Admin` / `Exclusive` / `Normal`（既定 Normal）。**シート共有は全員 Editor**
-- 範囲保護: Admin=なし／他ロール=現行（editors は運営＋ランタイム SA のみ）。プロビジョンは保護→共有
+- 範囲保護: **全ロールなし**（全セルをユーザー編集可。自動記入時もロックしない）。プロビジョンは保護除去→共有
 - 名簿正本は AI_Cripping GCS `setting/user-list.csv`（gmail=`{user_id}@gmail.com`）。退会リストは `setting/quitted_user.txt`（削除で追記・再登録で除外）。設定退避は `setting/quitted-user/{user_id}/`。運営設定のみ `config/app_config.json`（ユーザー配列なし）。名簿編集時は空行除去
 - 再追加で同年次シートがあれば**再利用**（注文データは消さない）。空にするのは `rebuild=True` のみ。`26964u` 退避禁止
 - 既存ユーザー再プロビジョンでシートを空にしない（`rebuild=True` のみ例外）
 - 状態は `○/×/-/返品` の**値**（あなたによるキャンセルは ASCII `-`）。キャンセル☑→`-`/`○` はテンプレ継承の Apps Script simple `onEdit`（新規は copy のみ。Agent はテンプレ／ユーザー本へ API 再配備しない）
 - Pt 欠落時は (販売価格+税金) の 1%。メルカリは SKU `m_m数字` → ID `m数字` のみ。仕入金は `items/get` + DPoP（失敗時空）
 - 返金手続き開始メールは対象外。既存本番は移行せず新レイアウト新規ファイルから
-- Gmail: 案 B 同意メール → 5 分ポーリング（トークン維持込み）。削除時はトークン解除
+- Gmail: 案 B 同意メール → 5 分ポーリング（トークン維持込み）。ポーリングはセルをロックしない。削除時はトークン解除
 - 本番展開: OAuth 本番公開済み・審査中、`ADMIN_USE_ADC=1`、SA に User_Acounting Editor、`PUBLIC_BASE_URL`、Scheduler

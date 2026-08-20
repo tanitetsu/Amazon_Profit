@@ -24,7 +24,7 @@ OAuth / 本番サービス名: **`amazon-profit-viewer`**
 ```
 
 - 新規追加: シート作成・共有 → AI_Cripping 名簿・`setting/user/{id}/`（quitted あれば復元／無ければ seed）→ Gmail 同意メール
-- 同年次ファイルあり: **再利用**（共有・保護・名簿のみ。空にするのは `rebuild=True`）
+- 同年次ファイルあり: **再利用**（共有・範囲保護の除去・名簿のみ。空にするのは `rebuild=True`）
 - 削除: 共有解除・名簿除外・Gmail 連携解除。`setting/user/{id}/` → `setting/quitted-user/{id}/`（scraping/log・シートは残す。`26964u` 禁止）
 - ポーリング: `scripts\poll_gmail_ingest.py --loop --interval-sec 300`
 
