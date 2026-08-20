@@ -1,4 +1,4 @@
-"""Split 税込価格 → 販売価格 + 税金 on live template and user books.
+"""Split 税込価格 → 販売価格 + 税金 (paused: live books stay on 税込価格).
 
 Does not compute tax from a combined amount. Existing rows are filled from
 the user's 注文確定 mail (価格 / 税金 as parsed). Editable columns are never
@@ -82,9 +82,22 @@ _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 _TITLE_RE = re.compile(r"^amazon-profit_(.+)_(\d{4})\.xlsx$", re.IGNORECASE)
 
 EDITABLE_KEYS = frozenset(f.key for f in DETAIL_FIELDS if f.editable)
-# Insert 税金 units at the old 手数料 start (= new tax start after schema change).
-TAX_INSERT_INDEX_0 = DETAIL_SPANS["tax"][0]
-TAX_UNITS = DETAIL_SPANS["tax"][1] - DETAIL_SPANS["tax"][0]
+
+PRICE_TAX_SPLIT_PAUSED = "tax" not in COL
+# Insert 税金 at 手数料 start. Schema currently has no tax field (live 税込価格).
+TAX_UNITS = 9
+TAX_INSERT_INDEX_0 = (
+    DETAIL_SPANS["tax"][0] if "tax" in DETAIL_SPANS else DETAIL_SPANS["fee"][0]
+)
+
+
+def require_price_tax_schema() -> None:
+    """Live books stay on 税込価格; do not run the split until schema has 税金."""
+    if PRICE_TAX_SPLIT_PAUSED:
+        raise RuntimeError(
+            "price/tax split is paused; schema and live books are 税込価格. "
+            "Do not run migrate_price_tax until the tax column is restored."
+        )
 
 
 def month_headers_migrated(price_header: str, tax_header: str) -> bool:
@@ -105,6 +118,7 @@ def price_tax_updates_for_row(
     tax: int | float | None,
 ) -> list[dict[str, Any]]:
     """Value writes for 販売価格 / 税金 only. Never touches editable cols."""
+    require_price_tax_schema()
     updates: list[dict[str, Any]] = []
     if price is not None:
         updates.append(
@@ -178,7 +192,7 @@ def detect_month_migrated(sheets_api, spreadsheet_id: str, title: str) -> bool:
     tax_h = _cell_str(
         sheets_api,
         spreadsheet_id,
-        f"'{title}'!{col_letter(COL['tax'])}{HEADER_ROW}",
+        f"'{title}'!{col_letter(COL['tax'] if 'tax' in COL else COL['fee'])}{HEADER_ROW}",
     )
     return month_headers_migrated(price_h, tax_h)
 
@@ -360,6 +374,7 @@ def _summary_layout_requests(sheet_id: int) -> list[dict[str, Any]]:
 
 
 def _tax_column_layout_requests(sheet_id: int) -> list[dict[str, Any]]:
+    require_price_tax_schema()
     c0, c1 = DETAIL_SPANS["tax"]
     reqs: list[dict[str, Any]] = [
         {
@@ -770,6 +785,7 @@ def migrate_spreadsheet(
     skip_backfill: bool = False,
     do_backup: bool = False,
 ) -> dict[str, Any]:
+    require_price_tax_schema()
     result: dict[str, Any] = {
         "title": title,
         "spreadsheet_id": spreadsheet_id,

@@ -79,16 +79,10 @@
 日常のコード修正は Cloud Agent。PC ローカル Agent は手動確認程度。  
 本番デプロイは依頼があれば `./scripts/deploy-admin.sh`。認証の載せ方: [`cloud-agent-environment.md`](cloud-agent-environment.md)
 
-## 販売価格 / 税金レイアウト移行
+## 販売価格 / 税金レイアウト移行（停止中）
 
-既存の月次・ダッシュボード・テンプレを「税込価格」1列から「販売価格＋税金」へ直す:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py --dry-run
-.\.venv\Scripts\python.exe scripts\migrate_price_tax_columns.py
-```
-
-`asamiodaka.b` の年次ブックは変更前に同フォルダへ `.bak-price-tax-*` コピーする。既存行の金額はメールの「価格」「税金」を再入力し、ユーザー編集列は書かない。
+ライブテンプレとユーザー本は **税込価格** のまま。コードの自動記入も旧列に戻した。  
+`migrate_price_tax_columns.py` はスキーマに税金列が無い間は実行しない（`require_price_tax_schema` で停止）。分割を再開するときはライブブック移行とセット。
 
 ## テンプレブック
 
