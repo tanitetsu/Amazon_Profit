@@ -1,16 +1,25 @@
-"""Pure helpers for 販売価格/税金 live migration."""
+"""Pure helpers for 販売価格/税金 live migration (paused on 税込価格 schema)."""
 from __future__ import annotations
+
+import pytest
 
 from app.migrate_price_tax import (
     EDITABLE_KEYS,
+    PRICE_TAX_SPLIT_PAUSED,
     month_headers_migrated,
     overview_labels_migrated,
     price_tax_updates_for_row,
+    require_price_tax_schema,
 )
-from app.schema import COL
 
 
-def test_editable_keys_never_include_price_or_tax() -> None:
+def test_split_is_paused_while_schema_has_no_tax() -> None:
+    assert PRICE_TAX_SPLIT_PAUSED is True
+    with pytest.raises(RuntimeError, match="paused"):
+        require_price_tax_schema()
+
+
+def test_editable_keys_never_include_price() -> None:
     assert "price" not in EDITABLE_KEYS
     assert "tax" not in EDITABLE_KEYS
     assert "cost" in EDITABLE_KEYS
@@ -30,22 +39,6 @@ def test_overview_labels_migrated() -> None:
     assert overview_labels_migrated(["販売価格", "手数料"]) is False
 
 
-def test_price_tax_updates_only_those_columns() -> None:
-    from app.schema import col_letter
-
-    updates = price_tax_updates_for_row(
-        month="2026-04",
-        row_1=6,
-        price=2260,
-        tax=205,
-    )
-    ranges = {u["range"] for u in updates}
-    assert ranges == {
-        f"'2026-04'!{col_letter(COL['price'])}6",
-        f"'2026-04'!{col_letter(COL['tax'])}6",
-    }
-    assert {u["values"][0][0] for u in updates} == {2260, 205}
-
-
-def test_price_tax_updates_skip_when_both_missing() -> None:
-    assert price_tax_updates_for_row("2026-04", 6, None, None) == []
+def test_price_tax_updates_refuse_while_paused() -> None:
+    with pytest.raises(RuntimeError, match="paused"):
+        price_tax_updates_for_row("2026-04", 6, 2260, 205)

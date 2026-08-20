@@ -1,11 +1,7 @@
-"""Split 税込価格 into 販売価格 + 税金 on the live template and every yearly book.
+"""Split 税込価格 into 販売価格 + 税金 (paused while schema is 税込価格).
 
-asamiodaka.b workbooks are copied to a .bak-price-tax-* file before changes.
-Existing order rows are refilled from each user's 注文確定 mail (no tax math).
-Editable columns are never written.
-
-  python scripts/migrate_price_tax_columns.py --dry-run
-  python scripts/migrate_price_tax_columns.py
+Live books were never migrated. Running this while PRICE_TAX_SPLIT_PAUSED
+raises RuntimeError. Restore the tax column in app/schema.py first.
 """
 
 from __future__ import annotations

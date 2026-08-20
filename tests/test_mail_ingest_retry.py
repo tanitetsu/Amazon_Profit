@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 from email.message import EmailMessage
 
-from app.mail_ingest import _is_blank_cell, should_mark_mail_seen
+from app.mail_ingest import _is_blank_cell, _order_row_values, should_mark_mail_seen
 from app.mail_parser import parse_eml_bytes
+from app.schema import COL, tax_included_amount
 
 
 def test_should_mark_seen_respects_defer():
@@ -41,6 +43,33 @@ def test_parse_order_halfwidth_colons():
     assert parsed.ship_by == "2026/03/31"
     assert len(parsed.lines) == 1
     assert parsed.lines[0].price == 1000
+
+
+def test_order_row_writes_tax_included_price_to_live_columns():
+    """Live books: 税込価格=CL, 手数料=CV, Pt=DE, 売上金=DL."""
+    vals = _order_row_values(
+        order_id="249-9071808-9623823",
+        sku="m_m48392027914",
+        title="test",
+        order_date=date(2026, 8, 19),
+        ship_by=None,
+        price=tax_included_amount(3180, 289),
+        fee=364,
+        points=35,
+        proceeds=2779,
+        cost=850,
+        sheet_row=114,
+    )
+    assert "tax" not in COL
+    assert vals[COL["price"] - 1] == 3469
+    assert vals[COL["fee"] - 1] == 364
+    assert vals[COL["points"] - 1] == 35
+    assert vals[COL["proceeds"] - 1] == 2779
+    assert COL["price"] == 90
+    assert COL["fee"] == 100
+    assert COL["points"] == 109
+    assert COL["proceeds"] == 116
+    assert COL["cost"] == 126
 
 
 def test_status_result_shape_defer_when_no_rows():

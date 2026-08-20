@@ -39,19 +39,19 @@ def test_row_profit_rate_uses_indirect() -> None:
 
 def test_month_kpi_rate_is_profit_minus_extra_over_proceeds() -> None:
     kpis = month_kpi_formulas()
-    rate = kpis[month_kpi_anchor_a1(8)]
-    proceeds = month_kpi_anchor_a1(4)
-    extra = month_kpi_anchor_a1(6)
-    profit = month_kpi_anchor_a1(7)
+    rate = kpis[month_kpi_anchor_a1(7)]
+    proceeds = month_kpi_anchor_a1(3)
+    extra = month_kpi_anchor_a1(5)
+    profit = month_kpi_anchor_a1(6)
     assert rate == f'=IF({proceeds}=0,"",({profit}-{extra})/{proceeds})'
 
 
-def test_month_kpi_includes_tax_sumif() -> None:
+def test_month_kpi_sales_sumif_uses_price_not_tax() -> None:
     kpis = month_kpi_formulas()
-    tax = kpis[month_kpi_anchor_a1(1)]
-    assert "SUMIF" in tax
-    assert col_letter(COL["tax"]) in tax
-    assert col_letter(COL["price"]) in kpis[month_kpi_anchor_a1(0)]
+    sales = kpis[month_kpi_anchor_a1(0)]
+    assert "SUMIF" in sales
+    assert col_letter(COL["price"]) in sales
+    assert "tax" not in COL
 
 
 def test_annual_rate_is_profit_minus_extra_over_proceeds() -> None:
@@ -59,6 +59,6 @@ def test_annual_rate_is_profit_minus_extra_over_proceeds() -> None:
     rate_i = OVERVIEW_METRIC_LABELS.index("利益率")
     # annual[0] is blank month label cell; metrics start at index 1
     rate = annual[rate_i + 1]
-    assert '/F6)' in rate or rate.endswith("/F6)")
-    assert "I6-H6" in rate.replace(" ", "")
-    assert rate.startswith('=IF(F6=0,"",')
+    assert '/E6)' in rate or rate.endswith("/E6)")
+    assert "H6-G6" in rate.replace(" ", "")
+    assert rate.startswith('=IF(E6=0,"",')

@@ -48,7 +48,6 @@ def order_row_values(row: LegacyOrderRow, sheet_row: int) -> list[Any]:
     vals[COL["ship_by"] - 1] = _sheets_date(row.ship_by)
     vals[COL["status"] - 1] = row.status
     vals[COL["price"] - 1] = row.price
-    vals[COL["tax"] - 1] = row.tax
     vals[COL["fee"] - 1] = row.fee
     vals[COL["points"] - 1] = row.points
     vals[COL["proceeds"] - 1] = row.proceeds
