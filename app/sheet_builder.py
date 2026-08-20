@@ -108,17 +108,14 @@ def row_profit_formula(row: int) -> str:
 
 
 def row_profit_rate_formula(row: int) -> str:
-    """Per-row 利益率 = (利益 − 諸費用) / 売上金. Blank when 売上金 is empty/0."""
+    """Per-row 利益率 = 利益 / 仕入金. Blank when 仕入金 is empty/0."""
     _ = row
     m = col_letter(COL["profit"])
-    j = col_letter(COL["proceeds"])
-    l = col_letter(COL["extra_cost"])
+    k = col_letter(COL["cost"])
     profit = f'INDIRECT("{m}"&ROW())'
-    proceeds = f'INDIRECT("{j}"&ROW())'
-    extra = f'INDIRECT("{l}"&ROW())'
+    cost = f'INDIRECT("{k}"&ROW())'
     return (
-        f'=IF(AND({profit}<>"",{proceeds}<>"",{proceeds}<>0),'
-        f'({profit}-IF({extra}="",0,{extra}))/{proceeds},"")'
+        f'=IF(AND({profit}<>"",{cost}<>"",{cost}<>0),{profit}/{cost},"")'
     )
 
 

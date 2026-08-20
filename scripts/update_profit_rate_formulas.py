@@ -1,7 +1,7 @@
-"""Rewrite 利益率 formulas on template + all yearly workbooks in User_Acounting.
+"""Rewrite detail-row 利益率 on template + all yearly workbooks in User_Acounting.
 
-Month detail / month summary / dashboard annual:
-  (利益 − 諸費用) / 売上金   (blank when 売上金 is 0)
+Detail: 利益 / 仕入金  (blank when 仕入金 is empty or 0).
+Does not change month-summary or dashboard 利益率.
 """
 
 from __future__ import annotations
@@ -28,18 +28,11 @@ from app.schema import (  # noqa: E402
     DATA_START_ROW,
     FORMULA_END_ROW,
     MONTH_TEMPLATE_SHEET,
-    OVERVIEW_KPI_VALUE_ROW,
-    SUMMARY_SHEET,
     TEMPLATE_SPREADSHEET_TITLE,
     col_letter,
 )
-from app.sheet_builder import (  # noqa: E402
-    month_kpi_anchor_a1,
-    month_kpi_formulas,
-    row_profit_rate_formula,
-)
+from app.sheet_builder import row_profit_rate_formula  # noqa: E402
 from app.sheets_retry import execute_with_retry, values_batch_update  # noqa: E402
-from app.template_ops import annual_sum_formulas  # noqa: E402
 from app.users_store import load_users_config  # noqa: E402
 
 _TITLE_RE = re.compile(r"^amazon-profit_.+_\d{4}\.xlsx$", re.IGNORECASE)
@@ -47,23 +40,35 @@ _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
 def _list_targets(drive, folder_id: str, template_id: str | None) -> list[dict[str, Any]]:
-    resp = execute_with_retry(
-        drive.files().list(
-            q=(
+    files: list[dict[str, Any]] = []
+    page_token: str | None = None
+    while True:
+        kwargs: dict[str, Any] = {
+            "q": (
                 f"'{folder_id}' in parents and "
                 "mimeType = 'application/vnd.google-apps.spreadsheet' and "
                 "trashed = false"
             ),
-            fields="files(id,name)",
-            pageSize=200,
-            orderBy="name",
-        ),
-        label="update_rate.list",
-    )
+            "fields": "nextPageToken,files(id,name)",
+            "pageSize": 200,
+            "orderBy": "name",
+        }
+        if page_token:
+            kwargs["pageToken"] = page_token
+        resp = execute_with_retry(
+            drive.files().list(**kwargs),
+            label="update_rate.list",
+        )
+        files.extend(resp.get("files") or [])
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
     targets: list[dict[str, Any]] = []
-    for f in resp.get("files") or []:
+    for f in files:
         name = f.get("name") or ""
         sid = f.get("id") or ""
+        if ".retired." in name or ".bak" in name:
+            continue
         is_tmpl = name == TEMPLATE_SPREADSHEET_TITLE or (
             bool(template_id) and sid == template_id
         )
@@ -90,9 +95,6 @@ def update_spreadsheet(sheets_api, spreadsheet_id: str) -> dict[str, Any]:
     rate_col = col_letter(COL["profit_rate"])
     detail_formula = row_profit_rate_formula(DATA_START_ROW)
     detail_block = [[detail_formula] for _ in range(DATA_START_ROW, FORMULA_END_ROW + 1)]
-    month_rate_a1 = month_kpi_anchor_a1(7)
-    month_rate_formula = month_kpi_formulas()[month_rate_a1]
-    annual = annual_sum_formulas()
 
     data: list[dict[str, Any]] = []
     month_titles: list[str] = []
@@ -105,20 +107,14 @@ def update_spreadsheet(sheets_api, spreadsheet_id: str) -> dict[str, Any]:
                     "values": detail_block,
                 }
             )
-            data.append(
-                {
-                    "range": f"'{title}'!{month_rate_a1}",
-                    "values": [[month_rate_formula]],
-                }
-            )
-    if SUMMARY_SHEET in titles:
-        # Whole annual KPI row (A6:M6) so rate stays aligned with labels.
-        data.append(
-            {
-                "range": f"'{SUMMARY_SHEET}'!A{OVERVIEW_KPI_VALUE_ROW}",
-                "values": [annual],
-            }
-        )
+
+    if not data:
+        return {
+            "spreadsheet_id": spreadsheet_id,
+            "months": [],
+            "detail_rows": 0,
+            "skipped": "no_month_sheets",
+        }
 
     values_batch_update(
         sheets_api,
@@ -130,10 +126,8 @@ def update_spreadsheet(sheets_api, spreadsheet_id: str) -> dict[str, Any]:
     return {
         "spreadsheet_id": spreadsheet_id,
         "months": month_titles,
-        "dashboard": SUMMARY_SHEET in titles,
         "detail_rows": FORMULA_END_ROW - DATA_START_ROW + 1,
-        "month_rate_cell": month_rate_a1,
-        "dashboard_rate_row": OVERVIEW_KPI_VALUE_ROW,
+        "formula": detail_formula,
     }
 
 
