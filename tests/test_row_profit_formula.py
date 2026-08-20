@@ -21,19 +21,21 @@ def test_row_profit_uses_indirect_same_row_anchors() -> None:
     assert f'{col_letter(COL["extra_cost"])}6' not in f
 
 
-def test_row_profit_rate_uses_indirect() -> None:
+def test_row_profit_rate_is_profit_over_cost() -> None:
     f = row_profit_rate_formula(12)
     profit = col_letter(COL["profit"])
-    proceeds = col_letter(COL["proceeds"])
-    extra = col_letter(COL["extra_cost"])
+    cost = col_letter(COL["cost"])
     assert f'INDIRECT("{profit}"&ROW())' in f
-    assert f'INDIRECT("{proceeds}"&ROW())' in f
-    assert f'INDIRECT("{extra}"&ROW())' in f
-    assert col_letter(COL["cost"]) not in f
+    assert f'INDIRECT("{cost}"&ROW())' in f
+    assert col_letter(COL["proceeds"]) not in f
+    assert col_letter(COL["extra_cost"]) not in f
     assert f"{profit}12" not in f
+    assert f"{cost}12" not in f
     assert (
-        f'(INDIRECT("{profit}"&ROW())-IF(INDIRECT("{extra}"&ROW())="",0,INDIRECT("{extra}"&ROW())))'
-        f'/INDIRECT("{proceeds}"&ROW())'
+        f'IF(AND(INDIRECT("{profit}"&ROW())<>"",'
+        f'INDIRECT("{cost}"&ROW())<>"",'
+        f'INDIRECT("{cost}"&ROW())<>0),'
+        f'INDIRECT("{profit}"&ROW())/INDIRECT("{cost}"&ROW()),"")'
     ) in f
 
 
